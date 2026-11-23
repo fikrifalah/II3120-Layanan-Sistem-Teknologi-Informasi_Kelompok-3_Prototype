@@ -1,0 +1,40 @@
+# Environment files (keep .env.example tracked)
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+backend/.venv/
+backend/venv/
+*.db
+*.sqlite3
+backend/app.db
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Node / Root, Frontend & Hardhat
+node_modules/
+blockchain/node_modules/
+frontend/node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Hardhat / Blockchain artifacts
+blockchain/artifacts/
+blockchain/cache/
+blockchain/typechain-types/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

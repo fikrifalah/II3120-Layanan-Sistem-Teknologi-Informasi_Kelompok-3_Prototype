@@ -1,0 +1,16 @@
+{
+  "name": "gigly-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gigly — Freelancer Matching & Smart Contract Escrow Platform",
+  "scripts": {
+    "blockchain": "npm --prefix blockchain run node",
+    "backend": "node scripts/run-backend.js",
+    "frontend": "npm --prefix frontend run dev",
+    "deploy": "npm --prefix blockchain run deploy:local",
+    "dev": "concurrently -n BLOCKCHAIN,BACKEND,FRONTEND -c cyan,green,magenta \"npm run blockchain\" \"npm run backend\" \"npm run frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

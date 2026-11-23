@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+sqlmodel
+web3
+python-multipart
+python-dotenv
