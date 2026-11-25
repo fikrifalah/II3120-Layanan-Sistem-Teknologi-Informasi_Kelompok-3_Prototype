@@ -22,13 +22,14 @@ import Placeholder from './client/Placeholder'
  * ClientParticipant views, mounted at /client/*.
  * Routes follow the Web App Master Plan §6–§8 and §12, scoped under /client.
  */
-export default function ClientView() {
+export default function ClientView({ onLogout }: { onLogout: () => void }) {
   return (
     <ClientStoreProvider>
       <ToastProvider>
         <Routes>
-          <Route element={<ClientShell />}>
+          <Route element={<ClientShell onLogout={onLogout} />}>
             <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="projects" element={<Projects />} />
             <Route path="projects/new" element={<CreateProject />} />
             <Route path="projects/:projectId" element={<Workspace />} />
