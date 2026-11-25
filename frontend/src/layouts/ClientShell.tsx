@@ -39,7 +39,7 @@ function useNav(): NavItem[] {
   const { contracts } = useStore()
   const reviews = contracts.flatMap((c) => c.milestones).filter((m) => m.status === 'under_review').length
   return [
-    { to: '/client', label: 'Dashboard', icon: <LayoutDashboard className="size-5" />, end: true },
+    { to: '/client', label: 'Dashboard', icon: <LayoutDashboard className="size-5" />, match: (p) => p === '/client' || p === '/client/dashboard' },
     { to: '/client/projects/new', label: 'Create Project', icon: <Plus className="size-5" /> },
     { to: '/client/projects', label: 'My Projects', icon: <FolderKanban className="size-5" />, badge: reviews || undefined, match: (p) => p.startsWith('/client/projects') && !p.startsWith('/client/projects/new') },
     { to: '/client/talent', label: 'Find Freelancers', icon: <Sparkles className="size-5" /> },
@@ -170,7 +170,7 @@ function Notifications() {
   )
 }
 
-function AccountMenu() {
+function AccountMenu({ onLogout }: { onLogout: () => void }) {
   const { user, resetDemo } = useStore()
   const [open, setOpen] = useState(false)
   const ref = useOutside<HTMLDivElement>(open, () => setOpen(false))
@@ -199,7 +199,7 @@ function AccountMenu() {
           >
             <RotateCcw className="size-4 text-ink-muted" aria-hidden /> Reset demo data
           </button>
-          <button type="button" className="flex h-10 w-full items-center gap-2.5 rounded-sm px-3 text-small text-ink hover:bg-canvas">
+          <button type="button" onClick={onLogout} className="flex h-10 w-full items-center gap-2.5 rounded-sm px-3 text-small text-ink hover:bg-canvas">
             <LogOut className="size-4 text-ink-muted" aria-hidden /> Log out
           </button>
         </div>
@@ -215,7 +215,7 @@ const MOBILE_TABS = [
   { to: '/client/wallet', label: 'Wallet', icon: Wallet, end: false },
 ]
 
-export default function ClientShell() {
+export default function ClientShell({ onLogout }: { onLogout: () => void }) {
   const { wallet } = useStore()
   const [drawer, setDrawer] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -289,7 +289,7 @@ export default function ClientShell() {
                 </span>
               </Link>
               <Notifications />
-              <AccountMenu />
+              <AccountMenu onLogout={onLogout} />
             </div>
           </div>
         </header>
