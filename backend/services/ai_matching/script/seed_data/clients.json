@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "Rina Kusuma",
+    "email": "RinaKusuma@example.com",
+    "password": "1234",
+    "role": "client",
+    "company": "Batik Sekar Arum",
+    "industry": "e-commerce fashion",
+    "aboutme": "Usaha batik tulis rumahan yang sudah berjalan 6 tahun dan selama ini berjualan lewat Instagram dan WhatsApp. Pesanan makin banyak sehingga kami ingin punya toko online sendiri dengan katalog, keranjang belanja, dan pembayaran online. Kami juga butuh bantuan foto produk, desain banner promo, dan konten media sosial."
+  },
+  {
+    "id": 2,
+    "name": "Hendra Gunawan",
+    "email": "HendraGunawan@example.com",
+    "password": "1234",
+    "role": "client",
+    "company": "Klinik Pratama Sehat Bersama",
+    "industry": "kesehatan dan klinik",
+    "aboutme": "Klinik pratama dengan tiga dokter umum dan satu dokter gigi. Pendaftaran pasien masih memakai buku dan antrean sering menumpuk di pagi hari. Kami mencari tim untuk membuat sistem reservasi online, aplikasi antrean untuk pasien, dan dashboard rekap kunjungan bulanan untuk manajemen."
+  },
+  {
+    "id": 3,
+    "name": "Sinta Maharani",
+    "email": "SintaMaharani@example.com",
+    "password": "1234",
+    "role": "client",
+    "company": "Kopi Teras Senja",
+    "industry": "kuliner dan f&b",
+    "aboutme": "Kedai kopi lokal dengan dua cabang yang sedang bersiap membuka cabang ketiga. Kami butuh identitas merek yang lebih konsisten (logo, kemasan, menu), aplikasi kasir dan pemesanan online, serta analisis data penjualan untuk menentukan menu terlaris dan jam ramai."
+  }
+]
