@@ -26,7 +26,8 @@ export default function App() {
   return <BrowserRouter><Routes>
     <Route path="/login" element={session ? redirect : <Login onLogin={setSession} />} />
     <Route path="/client/*" element={role === 'client' ? <ClientView onLogout={signOut} /> : redirect} />
-    <Route path="/freelancer/*" element={role === 'freelancer' ? <><FreelancerView /><button className="link mx-8" onClick={signOut}>Log out</button></> : redirect} />
+    {['/freelancer/:section/:invitationId?', '/projects/:projectId/workspace', '/projects/:projectId/milestones/:milestoneId', '/projects/:projectId/milestones/:milestoneId/submit'].map(path =>
+      <Route key={path} path={path} element={session && role === 'freelancer' ? <FreelancerView account={String(session.user.id ?? session.user.email ?? session.user.name)} token={session.token} name={session.user.name} onLogout={signOut} /> : redirect} />)}
     <Route path="/arbiter/*" element={role === 'arbiter' ? <><ArbiterView /><button className="link mx-8" onClick={signOut}>Log out</button></> : redirect} />
     <Route path="*" element={redirect} />
   </Routes></BrowserRouter>
