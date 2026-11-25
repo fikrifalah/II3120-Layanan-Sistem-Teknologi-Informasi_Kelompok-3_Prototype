@@ -28,6 +28,8 @@ export function profileSignature(profile: ProfileFields = seed) {
 const storageKey = 'gigly.demo.freelancer.profile.21'
 export const mockProfileEnabled = import.meta.env.VITE_USE_MOCK === 'true'
 const endpoint = (import.meta.env.VITE_API_BASE_URL || '/api/v1') + '/freelancer/profile'
+// Profil dari backend asli bila VITE_PROFILE_API=true; fitur demo lain tetap memakai mockProfileEnabled.
+const profileApi = import.meta.env.VITE_PROFILE_API === 'true'
 
 function readShape(value: FreelancerProfile): FreelancerProfile {
   if (!value || !Number.isSafeInteger(value.id) || typeof value.name !== 'string' ||
@@ -51,7 +53,7 @@ export function profileError(profile: ProfileFields): string {
 }
 
 export async function requestProfile(token: string, signal: AbortSignal, patch?: Partial<ProfileFields>): Promise<FreelancerProfile> {
-  if (mockProfileEnabled) {
+  if (mockProfileEnabled && !profileApi) {
     const current = readDemoProfile()
     if (!patch) return current
     const updated = { ...current, ...patch }

@@ -19,6 +19,8 @@ export interface ReceivedInvitation {
 }
 type Decision = 'accepted' | 'declined'
 const endpoint = (import.meta.env.VITE_API_BASE_URL || '/api/v1') + '/invitations'
+/** true = kotak undangan memakai data demo; false = undangan asli dari backend (VITE_INVITATIONS_API=true). */
+export const demoInbox = mockProfileEnabled && import.meta.env.VITE_INVITATIONS_API !== 'true'
 async function request(path: string, token: string, signal: AbortSignal, decision?: Decision) {
   const response = await fetch(endpoint + path, { signal, method: decision ? 'POST' : 'GET',
     headers: { Authorization: 'Bearer ' + token, ...(decision && { 'Content-Type': 'application/json' }) },
@@ -39,7 +41,7 @@ async function listAll(token: string, signal: AbortSignal) {
 }
 
 export function useReceivedInvitations(token: string, id?: string) {
-  const workspace = useDemoWorkspace(mockProfileEnabled)
+  const workspace = useDemoWorkspace(demoInbox)
   const demo = useMemo(() => workspace?.invitations.filter(i => i.candidateId === demoRecipient).flatMap(i => {
     const p = workspace.projects.find(p => p.id === i.projectId)
     if (!p) return []
@@ -59,7 +61,7 @@ export function useReceivedInvitations(token: string, id?: string) {
   const [version, setVersion] = useState(0)
   const retry = useCallback(() => setVersion(v => v + 1), [])
   useEffect(() => {
-    if (mockProfileEnabled) return
+    if (demoInbox) return
     const controller = new AbortController()
     setError(''); setDetail(undefined)
     const pending = id ? request('/' + encodeURIComponent(id), token, controller.signal).then(({ data }) => {
@@ -71,7 +73,7 @@ export function useReceivedInvitations(token: string, id?: string) {
   }, [id, token, version])
   async function respond(decision: Decision, signal: AbortSignal) {
     if (!id) return
-    if (mockProfileEnabled) return decideDemo(id, decision, demoRecipient)
+    if (demoInbox) return decideDemo(id, decision, demoRecipient)
     try {
       const { data } = await request('/' + encodeURIComponent(id) + '/respond', token, signal, decision)
       if (String(data?.id) !== id || data.status !== decision) throw new Error('Could not confirm the response.')

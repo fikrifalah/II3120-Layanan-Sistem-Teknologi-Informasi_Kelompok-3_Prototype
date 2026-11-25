@@ -12,8 +12,11 @@ import { Badge, InvitationStatusBadge, SkillChip } from '../../components/ui/Bad
 import { Breadcrumb, CardTitle, Tabs } from '../../components/ui/Display'
 import { AnonAvatar, PersonAvatar, ScoreRing } from '../../components/ui/Identity'
 import { InviteDialog } from '../../components/CandidateCard'
+import { matchingApiEnabled } from '../../services/matching'
 
-const FACTORS: Array<{ key: keyof ScoreBreakdown; label: string; weight: number }> = [
+type Factor = { key: keyof ScoreBreakdown; label: string; weight: number }
+
+const MOCK_FACTORS: Factor[] = [
   { key: 'skills', label: 'Skills', weight: 30 },
   { key: 'experience', label: 'Experience relevance', weight: 25 },
   { key: 'portfolio', label: 'Portfolio relevance', weight: 20 },
@@ -21,6 +24,18 @@ const FACTORS: Array<{ key: keyof ScoreBreakdown; label: string; weight: number 
   { key: 'availability', label: 'Availability', weight: 10 },
   { key: 'reliability', label: 'Delivery record', weight: 5 },
 ]
+
+/** Bobot asli backend AI matching (scoring.py WEIGHTS, keputusan #16). */
+const API_FACTORS: Factor[] = [
+  { key: 'skills', label: 'Skills', weight: 26 },
+  { key: 'experience', label: 'Experience relevance', weight: 18 },
+  { key: 'portfolio', label: 'Portfolio relevance', weight: 18 },
+  { key: 'profile', label: 'Profile match', weight: 18 },
+  { key: 'budget', label: 'Budget fit', weight: 10 },
+  { key: 'availability', label: 'Availability', weight: 10 },
+]
+
+const FACTORS = matchingApiEnabled ? API_FACTORS : MOCK_FACTORS
 
 type Tab = 'portfolio' | 'skills'
 
@@ -172,7 +187,7 @@ export default function CandidateDetail() {
                       </div>
                     </li>
                   ))}
-                  <li className="rounded-md bg-canvas p-3 text-caption text-ink-muted">A freelancer with no history scores a neutral 70 on delivery record — being new is not counted as a bad record.</li>
+                  {!matchingApiEnabled && <li className="rounded-md bg-canvas p-3 text-caption text-ink-muted">A freelancer with no history scores a neutral 70 on delivery record — being new is not counted as a bad record.</li>}
                 </ul>
               )}
             </div>

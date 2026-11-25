@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Circle, EyeOff, Info, Pencil, Sparkles, Star, Wallet } from 'lucide-react'
 import { useStore, type NewProjectInput } from '../../services/store'
-import { CATEGORIES, suggestSkills } from '../../services/matching'
+import { CATEGORIES, matchingApiEnabled, suggestSkills } from '../../services/matching'
 import { dateInput, daysBetween, formatDate, formatIdr, isoDaysFromNow } from '../../lib/format'
 import { usePageTitle } from '../../lib/usePageTitle'
 import { cn } from '../../lib/cn'
@@ -396,7 +396,9 @@ export default function CreateProject() {
                 </p>
                 <p className="text-small text-ink-muted">
                   {step === 0 && 'The description and deliverables become the requirement summary you confirm in step 4. Nothing is added that you did not write.'}
-                  {step === 1 && 'Required skills filter; preferred skills and industry only change the order. Weights: skills 30%, experience 25%, portfolio 20%, budget 10%, availability 10%, reliability 5%.'}
+                  {step === 1 && (matchingApiEnabled
+                    ? 'Skills, experience, portfolio and profile are scored against your description; only budget (+20%) and current workload filter candidates. Weights: skills 26%, experience 18%, portfolio 18%, profile 18%, budget 10%, availability 10%.'
+                    : 'Required skills filter; preferred skills and industry only change the order. Weights: skills 30%, experience 25%, portfolio 20%, budget 10%, availability 10%, reliability 5%.')}
                   {step === 2 && 'Estimates above your budget lower a candidate’s score but keep them visible, with the gap stated.'}
                 </p>
               </div>

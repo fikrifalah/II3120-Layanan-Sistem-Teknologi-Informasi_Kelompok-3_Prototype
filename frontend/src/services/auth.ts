@@ -1,9 +1,10 @@
 export const roles = ['client', 'freelancer', 'arbiter'] as const
 export type Role = typeof roles[number]
-export interface Account { id?: number; email?: string; name: string; role: Role }
+export interface Account { id?: number; email?: string; name: string; role: Role; company?: string }
 interface Session { user: Account; token: string; expires: number }
 
-const mock = import.meta.env.VITE_USE_MOCK === 'true'
+// Login asli bila VITE_AUTH_API=true, walaupun fitur lain masih mock (VITE_USE_MOCK=true).
+const mock = import.meta.env.VITE_AUTH_API !== 'true' && import.meta.env.VITE_USE_MOCK === 'true'
 const base = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 const key = mock ? 'gigly.demo.session' : 'gigly.session'
 const demoNames: Record<Role, string> = { client: 'Alex Lee', freelancer: 'Rafi Pratama', arbiter: 'Maya Putri' }
@@ -11,6 +12,31 @@ const invalid = 'Invalid email, password, or role.'
 
 function isAccount(value: Account | undefined): value is Account {
   return !!value && typeof value.name === 'string' && roles.includes(value.role)
+}
+
+/** akun yang sedang login dari sesi tersimpan; null bila belum login. */
+export function currentAccount(): Account | null {
+  try {
+    const user = JSON.parse(sessionStorage.getItem(key) ?? localStorage.getItem(key) ?? 'null')?.user
+    return isAccount(user) ? user : null
+  } catch {
+    return null
+  }
+}
+
+/** id akun yang sedang login; null bila belum login atau sesi mock (tanpa id). */
+export function currentAccountId(): number | null {
+  const id = currentAccount()?.id
+  return Number.isInteger(id) ? (id as number) : null
+}
+
+/** token sesi yang sedang login ('' bila belum login atau sesi mock). */
+export function currentToken(): string {
+  try {
+    return JSON.parse(sessionStorage.getItem(key) ?? localStorage.getItem(key) ?? 'null')?.token ?? ''
+  } catch {
+    return ''
+  }
 }
 
 export function clearSession() {

@@ -1,20 +1,42 @@
 import { useSyncExternalStore } from 'react'
-import { addInboxFixtures, createSeed, type ClientState } from './seed'
+import { accountUser, addInboxFixtures, createEmptyWorkspace, createSeed, type ClientState } from './seed'
+import { currentAccount } from './auth'
 import type { Invitation, InvitationStatus } from '../types/domain'
 import { uid } from '../lib/format'
 
-const key = 'gigly.client.v2'
+const baseKey = 'gigly.client.v2'
 const event = 'gigly:workspace'
 export const demoRecipient = 'TL-3158'
 let cachedRaw: string | null | undefined
+let cachedKey: string | undefined
 let cached: ClientState
 
+/** Satu workspace per akun: akun asli -> 'gigly.client.v2.u<id>', login demo (tanpa id) -> kunci lama. */
+function storageKey(): string {
+  const id = currentAccount()?.id
+  return id ? `${baseKey}.u${id}` : baseKey
+}
+
+/** Isi awal workspace: akun asli mulai kosong; login demo memakai data contoh. */
+export function freshWorkspace(): ClientState {
+  const account = currentAccount()
+  return account?.id ? createEmptyWorkspace(account) : addInboxFixtures(createSeed())
+}
+
 export function demoWorkspace(): ClientState {
+  const key = storageKey()
   const raw = localStorage.getItem(key)
-  if (cached && raw === cachedRaw) return cached
+  if (cached && raw === cachedRaw && key === cachedKey) return cached
+  cachedKey = key
   let state: ClientState
-  try { state = raw ? JSON.parse(raw) : createSeed() } catch { state = createSeed() }
-  let migrated = addInboxFixtures(state)
+  try { state = raw ? JSON.parse(raw) : freshWorkspace() } catch { state = freshWorkspace() }
+  const account = currentAccount()
+  let migrated = state
+  if (account?.id) {
+    // Akun asli: header selalu mengikuti akun yang login; data demo tidak ditambahkan.
+    const user = accountUser(account)
+    if (JSON.stringify(user) !== JSON.stringify(state.user)) migrated = { ...state, user }
+  } else migrated = addInboxFixtures(state)
   // Legacy revision requests already have a final submission and an original review deadline.
   if (migrated.contracts.some(c=>c.milestones.some(m=>m.status==='revision_required' && m.submissions.length))) {
     migrated={...migrated,contracts:migrated.contracts.map(c=>({...c,milestones:c.milestones.map(m=>
@@ -35,14 +57,14 @@ export function updateDemo(fn: (state: ClientState) => ClientState) {
   const next = fn(state)
   if (next === state) return
   const raw = JSON.stringify(next)
-  localStorage.setItem(key, raw)
+  localStorage.setItem(storageKey(), raw)
   cachedRaw = raw
   cached = next
   window.dispatchEvent(new Event(event))
 }
 
 function subscribe(fn: () => void) {
-  const storage = (e: StorageEvent) => { if (e.key === key || e.key === null) fn() }
+  const storage = (e: StorageEvent) => { if (e.key === storageKey() || e.key === null) fn() }
   window.addEventListener('storage', storage)
   window.addEventListener(event, fn)
   return () => { window.removeEventListener('storage', storage); window.removeEventListener(event, fn) }

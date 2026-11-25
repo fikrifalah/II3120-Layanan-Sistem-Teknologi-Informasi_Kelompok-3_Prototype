@@ -6,7 +6,10 @@ from fastapi.staticfiles import StaticFiles
 
 from database import init_db
 import models  # noqa: F401
+from services.ai_matching.router import profile_router as freelancer_profile_router
 from services.ai_matching.router import router as ai_matching_router
+from services.auth.router import router as auth_router
+from services.invitations.router import router as invitations_router
 
 
 UPLOADS_DIR = Path(__file__).resolve().parent / "uploads"
@@ -31,7 +34,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth_router)
 app.include_router(ai_matching_router)
+app.include_router(freelancer_profile_router)
+app.include_router(invitations_router)
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 

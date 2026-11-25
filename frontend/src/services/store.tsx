@@ -1,10 +1,19 @@
 import { mockProfileEnabled, profileSignature, readDemoProfile } from './freelancerProfile'
-import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import type { ActivityItem, Candidate, Contract, Milestone, Project, Transaction } from '../types/domain'
 import { fakeHash, formatSim, uid } from '../lib/format'
-import { rankCandidates } from './matching'
-import { demoRecipient, demoWorkspace, decideDemo, updateDemo, useDemoWorkspace } from './demoWorkspace'
-import { addInboxFixtures, createSeed, type ClientState } from './seed'
+import {
+  cancelInvitationApi,
+  fetchCandidates,
+  fetchSentInvitations,
+  invitationsApiEnabled,
+  matchingApiEnabled,
+  rankCandidates,
+  revealedIdentity,
+  sendInvitationApi,
+} from './matching'
+import { demoRecipient, demoWorkspace, decideDemo, freshWorkspace, updateDemo, useDemoWorkspace } from './demoWorkspace'
+import { type ClientState } from './seed'
 
 /**
  * Client workspace state for the prototype. Every action here stands in for a backend call
@@ -63,6 +72,48 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       })),
     [update],
   )
+
+  // Mode backend: tiap 5 detik cek undangan yang masih pending. Bila freelancer menerima,
+  // backend mengirim identitasnya -> nama ditampilkan (kandidat "terbuka"), sama seperti alur demo.
+  useEffect(() => {
+    if (!invitationsApiEnabled) return
+    const timer = window.setInterval(async () => {
+      const s = stateRef.current
+      const jobs = new Map<number, string>() // backendJobId -> projectId
+      for (const inv of s.invitations) {
+        const jobId = s.projects.find((p) => p.id === inv.projectId)?.backendJobId
+        if (inv.backendId && inv.status === 'pending' && jobId) jobs.set(jobId, inv.projectId)
+      }
+      for (const [jobId, projectId] of jobs) {
+        const rows = await fetchSentInvitations(jobId).catch(() => [])
+        for (const row of rows) {
+          const inv = stateRef.current.invitations.find((i) => i.backendId === row.id)
+          if (!inv || inv.status === row.status) continue
+          const identity = row.identity ? revealedIdentity(row.identity) : undefined
+          update((st) => ({
+            ...st,
+            invitations: st.invitations.map((i) => i.id !== inv.id ? i : {
+              ...i,
+              status: row.status,
+              respondedAt: row.responded_at ?? undefined,
+              candidateSnapshot: identity && i.candidateSnapshot ? { ...i.candidateSnapshot, identity } : i.candidateSnapshot,
+            }),
+            candidates: identity
+              ? { ...st.candidates, [projectId]: (st.candidates[projectId] ?? []).map((c) => (c.id === inv.candidateId ? { ...c, identity } : c)) }
+              : st.candidates,
+          }))
+          const title = stateRef.current.projects.find((p) => p.id === projectId)?.title
+          const href = `/client/projects/${projectId}/invitations`
+          if (row.status === 'accepted' && identity) {
+            log(`${inv.candidateId} accepted your invitation — this is ${identity.name}`, 'success', projectId, { title: `${identity.name} accepted your invitation`, body: title, href })
+          } else if (row.status === 'declined') {
+            log(`${inv.candidateId} declined your invitation`, 'warning', projectId, { title: 'Invitation declined', body: title, href })
+          }
+        }
+      }
+    }, 5000)
+    return () => window.clearInterval(timer)
+  }, [log, update])
 
   const patchProject = useCallback(
     (id: string, patch: Partial<Project>) => update((s) => ({ ...s, projects: s.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)) })),
@@ -126,31 +177,40 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       updateProject: patchProject,
 
       async runMatching(projectId) {
-        await wait(2600)
         const project = stateRef.current.projects.find((p) => p.id === projectId)
         if (!project) throw new Error('Project not found')
-        const ranked = rankCandidates(project, 6, mockProfileEnabled ? readDemoProfile() : undefined)
+        let ranked: Candidate[]
+        if (matchingApiEnabled) {
+          // Backend AI matching asli; id job disimpan di proyek agar alias stabil saat diulang.
+          ranked = await fetchCandidates(project, (jobId) => patchProject(projectId, { backendJobId: jobId }))
+        } else {
+          await wait(2600) // mock: meniru waktu tunggu jaringan
+          ranked = rankCandidates(project, 6, mockProfileEnabled ? readDemoProfile() : undefined)
+        }
         update((s) => ({ ...s, candidates: { ...s.candidates, [projectId]: ranked } }))
         if (project.status === 'draft' || project.status === 'matching') patchProject(projectId, { status: 'matching' })
         log(`AI matching ranked ${ranked.length} candidates for ${project.title}`, 'brand', projectId)
         return ranked
       },
 
-      sendInvitation(projectId, candidateId, message) {
-        return navigator.locks.request('gigly-invitations', () => {
+      async sendInvitation(projectId, candidateId, message) {
+        await navigator.locks.request('gigly-invitations', async () => {
           const latest = demoWorkspace()
           const candidate = latest.candidates[projectId]?.find(c => c.id === candidateId)
           if (!candidate?.eligible || !['matching', 'inviting'].includes(latest.projects.find(p => p.id === projectId)?.status ?? '')) throw new Error('An eligible match on an open project is required.')
           if (latest.invitations.some(i => i.projectId === projectId && i.candidateId === candidateId && i.status === 'pending')) throw new Error('Invitation already pending.')
           const profile = candidateId === demoRecipient && mockProfileEnabled ? readDemoProfile() : null
           if (profile && (profileSignature(profile) !== (candidate.profileSignature ?? profileSignature()) || !latest.projects.find(p => p.id === projectId)!.requiredSkills.every(s => profile.skills.includes(s)))) throw new Error('Profile changed. Run matching again.')
-          const inv = { id: uid('INV'), candidateSnapshot: candidate, portfolioExcerpt: profile?.portfolio, projectId, candidateId, status: 'pending' as const, sentAt: new Date().toISOString(), message }
+          // Mode backend: undangan dikirim ke freelancer asli lewat alias; balasannya diambil oleh sinkronisasi di bawah.
+          const jobId = latest.projects.find(p => p.id === projectId)?.backendJobId
+          const sent = invitationsApiEnabled && jobId ? await sendInvitationApi(jobId, candidate, message) : null
+          const inv = { id: uid('INV'), backendId: sent?.id, candidateSnapshot: candidate, portfolioExcerpt: profile?.portfolio, projectId, candidateId, status: 'pending' as const, sentAt: new Date().toISOString(), message }
           update((s) => ({ ...s, invitations: [inv, ...s.invitations] }))
           const p = stateRef.current.projects.find((x) => x.id === projectId)
           if (p && (p.status === 'matching' || p.status === 'draft')) patchProject(projectId, { status: 'inviting' })
           log(`Invitation sent to ${candidateId}`, 'brand', projectId)
 
-          if (candidateId === demoRecipient) return
+          if (candidateId === demoRecipient || sent) return // undangan asli dibalas freelancer sungguhan, bukan simulasi
           // Other candidates have no playable demo account.
           setTimeout(() => {
             const current = demoWorkspace().invitations.find((i) => i.id === inv.id)
@@ -169,7 +229,9 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         })
       },
 
-      cancelInvitation(invitationId) {
+      async cancelInvitation(invitationId) {
+        const inv = stateRef.current.invitations.find((i) => i.id === invitationId)
+        if (inv?.backendId) await cancelInvitationApi(inv.backendId) // batalkan juga di backend
         return decideDemo(invitationId, 'cancelled')
       },
 
@@ -283,7 +345,7 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       },
 
       resetDemo() {
-        update(() => addInboxFixtures(createSeed()))
+        update(() => freshWorkspace()) // akun asli: kosong lagi; login demo: data contoh
       },
     }),
     [log, patchContract, patchMilestone, patchProject, simulateSubmission, update],

@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { BriefcaseBusiness, Calendar, Check, ChevronRight, CircleCheck, CircleMinus, CircleX, CodeXml, Coins, Flag, Info, Mail, MessageSquare, Sparkles, X } from 'lucide-react'
 import { InvitationStatusBadge, SkillChip } from '../components/ui/Badge'
-import { mockProfileEnabled } from '../services/freelancerProfile'
-import { type ReceivedInvitation, type useReceivedInvitations } from '../services/receivedInvitations'
+import { demoInbox, type ReceivedInvitation, type useReceivedInvitations } from '../services/receivedInvitations'
 import { daysBetween, formatDate, formatIdr } from '../lib/format'
 import InvitationMessages from '../components/InvitationMessages'
 import './invitations.css'
@@ -68,7 +67,7 @@ export default function ReceivedInvitations({ inbox, id }: { inbox: Inbox; id?: 
       {error && <p role="alert">{error}</p>}<div className="inv-actions">
         {can('accept') && <button className="primary-action" disabled={busy} onClick={() => respond('accepted')}><Check />Accept Invitation</button>}
         {can('decline') && <button className="outline-action" disabled={busy} onClick={() => respond('declined')}><X />Decline</button>}
-        {mockProfileEnabled && (i.allowed_actions.includes('message') || i.status === 'declined' || i.status === 'cancelled') && <button className="outline-action" onClick={() => showMessages(true)}><MessageSquare />{i.allowed_actions.includes('message') ? 'Message Client' : 'View Messages'}</button>}
+        {demoInbox && (i.allowed_actions.includes('message') || i.status === 'declined' || i.status === 'cancelled') && <button className="outline-action" onClick={() => showMessages(true)}><MessageSquare />{i.allowed_actions.includes('message') ? 'Message Client' : 'View Messages'}</button>}
       </div>{messages && <InvitationMessages id={id} sender="freelancer" close={() => showMessages(false)} />}
     </article>
   }

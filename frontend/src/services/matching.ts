@@ -1,5 +1,6 @@
 import { catalog, profileSignature, type FreelancerProfile } from './freelancerProfile'
-import type { Candidate, ExperienceLevel, PortfolioEvidence, Project, ScoreBreakdown } from '../types/domain'
+import type { Candidate, ExperienceLevel, InvitationStatus, PortfolioEvidence, Project, ScoreBreakdown } from '../types/domain'
+import { currentAccountId, currentToken } from './auth'
 
 /**
  * Local stand-in for POST /api/v1/matching/recommend.
@@ -179,7 +180,7 @@ const POOL: TalentProfile[] = [
   },
 ]
 
-const WEIGHTS: ScoreBreakdown = { skills: 0.3, experience: 0.25, portfolio: 0.2, budget: 0.1, availability: 0.1, reliability: 0.05 }
+const WEIGHTS: ScoreBreakdown = { skills: 0.3, experience: 0.25, portfolio: 0.2, budget: 0.1, availability: 0.1, reliability: 0.05, profile: 0 }
 const LEVEL_YEARS: Record<ExperienceLevel, number> = { junior: 1, mid: 3, senior: 5 }
 
 const norm = (s: string) => s.trim().toLowerCase()
@@ -214,6 +215,7 @@ function scoreProfile(t: TalentProfile, p: Project, rank: number): Candidate {
     budget: Math.round(budget),
     availability: t.availabilityScore,
     reliability: Math.round(reliability),
+    profile: 0,
   }
   const score = Math.round(
     (Object.keys(WEIGHTS) as Array<keyof ScoreBreakdown>).reduce((sum, k) => sum + breakdown[k] * WEIGHTS[k], 0),
@@ -294,4 +296,149 @@ const CATEGORY_SKILLS: Record<string, string[]> = {
 export function suggestSkills(category: string): string[] {
   const first = CATEGORY_SKILLS[category] ?? []
   return [...first, ...SKILL_SUGGESTIONS.filter((s) => !first.includes(s))]
+}
+
+/* ------------------------------------------------------------------
+ * Backend AI matching (VITE_MATCHING_API=true): POST /matching/jobs lalu /matching/recommend.
+ * Respons backend anonim (alias, tanpa nama); adapter di bawah mengubahnya ke bentuk Candidate UI.
+ * ------------------------------------------------------------------ */
+export const matchingApiEnabled = import.meta.env.VITE_MATCHING_API === 'true'
+const apiBase = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+const matchingClientId = Number(import.meta.env.VITE_MATCHING_CLIENT_ID || 1)
+
+interface ApiCandidate {
+  alias: string
+  rank: number
+  score: number
+  breakdown: Record<string, number | null>
+  matched_skills: string[]
+  missing_skills: string[]
+  estimate_idr: number | null
+  active_projects: number
+  about: string
+  evidence: { type: string; text: string }[]
+  reason: string
+}
+
+async function requestJson<T>(method: 'GET' | 'POST', path: string, body?: unknown, token?: string): Promise<T> {
+  const r = await fetch(apiBase + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token && { Authorization: 'Bearer ' + token }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  if (!r.ok) {
+    // Tampilkan pesan dari backend (mis. "Invitation already pending.") bila ada.
+    const detail = (await r.json().catch(() => null))?.detail
+    throw new Error(typeof detail === 'string' ? detail : `API ${path} failed (${r.status})`)
+  }
+  return r.json()
+}
+
+const postJson = <T,>(path: string, body: unknown, token?: string) => requestJson<T>('POST', path, body, token)
+
+/** Kirim proyek ke backend (sekali saja), lalu minta rekomendasi. */
+export async function fetchCandidates(project: Project, onJobCreated: (jobId: number) => void, limit = 6): Promise<Candidate[]> {
+  let jobId = project.backendJobId
+  if (!jobId) {
+    const description = [project.description, ...project.deliverables.map((d) => '- ' + d)].join('\n')
+    const created = await postJson<{ job_id: number }>('/matching/jobs', {
+      client_id: currentAccountId() ?? matchingClientId, // akun client yang login; fallback env saat login mock
+      title: project.title,
+      description,
+      budget: project.budgetIdr,
+      required_skills: project.requiredSkills,
+      preferred_skills: project.preferredSkills,
+      category: project.category,
+      industry: project.industry,
+    })
+    jobId = created.job_id
+    onJobCreated(jobId)
+  }
+  const { candidates } = await postJson<{ candidates: ApiCandidate[] }>('/matching/recommend', { job_id: jobId, top_k: limit })
+  return candidates.map((c) => toCandidate(c, project))
+}
+
+const pct = (v: number | null | undefined) => Math.round(v ?? 0)
+
+function toCandidate(c: ApiCandidate, p: Project): Candidate {
+  const b = c.breakdown
+  const estimate = c.estimate_idr ?? 0
+  const firstSentence = c.about.split('. ')[0]
+  const gaps = c.missing_skills.map((s) => `No evidence of ${s} in profile.`)
+  if (estimate > p.budgetIdr) gaps.push(`Estimate is ${Math.round(((estimate - p.budgetIdr) / p.budgetIdr) * 100)}% over your budget.`)
+  gaps.push('New on Gigly — no delivery history yet.')
+  return {
+    id: c.alias,
+    projectId: p.id,
+    rank: c.rank,
+    score: Math.round(c.score),
+    breakdown: {
+      skills: pct(b.skill), experience: pct(b.experience), portfolio: pct(b.portfolio),
+      profile: pct(b.profile), budget: pct(b.budget), availability: pct(b.availability), reliability: 0,
+    },
+    headline: firstSentence.length > 80 ? firstSentence.slice(0, 77) + '…' : firstSentence,
+    experienceYears: Number(c.about.match(/(\d+)\s*tahun/i)?.[1] ?? 0),
+    availability: c.active_projects === 0 ? 'Available now' : `Handling ${c.active_projects} active project${c.active_projects > 1 ? 's' : ''}`,
+    availableNow: c.active_projects === 0,
+    estimateIdr: estimate,
+    matchedSkills: c.matched_skills,
+    missingSkills: c.missing_skills,
+    eligible: true, // semua kandidat backend sudah lolos gerbang budget + kapasitas (keputusan #15)
+    reasons: [c.reason],
+    gaps,
+    about: c.about,
+    portfolio: c.evidence.map((e) => ({
+      title: e.type === 'portfolio' ? 'Portfolio' : 'Experience',
+      summary: e.text,
+      stack: c.matched_skills.filter((s) => e.text.toLowerCase().includes(s)),
+      verified: false,
+    })),
+    completedProjects: 0,
+    onTimeRate: null,
+    identity: { name: c.alias, role: 'Freelancer', location: '—', initials: c.alias.slice(-2) },
+  }
+}
+
+
+/* ------------------------------------------------------------------
+ * Undangan lewat backend (VITE_INVITATIONS_API=true). Client hanya mengirim alias;
+ * nama freelancer baru dikirim backend setelah undangan DITERIMA.
+ * ------------------------------------------------------------------ */
+export const invitationsApiEnabled = import.meta.env.VITE_INVITATIONS_API === 'true'
+
+export interface SentInvitation {
+  id: number
+  job_id: number
+  alias: string
+  status: InvitationStatus
+  created_at: string
+  responded_at: string | null
+  identity: { name: string; email: string } | null
+}
+
+export async function sendInvitationApi(jobId: number, c: Candidate, message: string): Promise<SentInvitation> {
+  const { data } = await postJson<{ data: SentInvitation }>('/invitations', {
+    job_id: jobId,
+    alias: c.id,
+    message,
+    match_score: c.score,
+    match_explanation: c.reasons.join(' '),
+  }, currentToken())
+  return data
+}
+
+export async function cancelInvitationApi(id: number): Promise<SentInvitation> {
+  const { data } = await postJson<{ data: SentInvitation }>(`/invitations/${id}/cancel`, {}, currentToken())
+  return data
+}
+
+export async function fetchSentInvitations(jobId: number): Promise<SentInvitation[]> {
+  const { data } = await requestJson<{ data: SentInvitation[] }>('GET', `/invitations/sent?job_id=${jobId}`, undefined, currentToken())
+  return data
+}
+
+/** Identitas yang dibuka backend -> bentuk `identity` kandidat di UI. */
+export function revealedIdentity(identity: { name: string }): Candidate['identity'] {
+  const initials = identity.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+  return { name: identity.name, role: 'Freelancer', location: '—', initials }
 }

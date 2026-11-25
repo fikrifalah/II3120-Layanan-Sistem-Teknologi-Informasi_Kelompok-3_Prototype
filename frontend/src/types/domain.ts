@@ -35,6 +35,8 @@ export interface Project {
   /** Candidate selected for the contract, once an invitation is accepted. */
   hiredCandidateId?: string
   contractId?: string
+  /** id baris `job` di backend AI matching; dibuat sekali agar alias kandidat tetap stabil. */
+  backendJobId?: number
 }
 
 /** Score components; weights from Master Plan §6.3 (skill 30, experience 25, portfolio 20, budget 10, availability 10, reliability 5). */
@@ -45,6 +47,8 @@ export interface ScoreBreakdown {
   budget: number
   availability: number
   reliability: number
+  /** Kecocokan Ringkasan/Keahlian CV (backend AI matching, keputusan #16). Mock selalu 0. */
+  profile: number
 }
 
 export interface PortfolioEvidence {
@@ -96,6 +100,8 @@ export interface Invitation {
   portfolioExcerpt?: string
   conversation?: { sender: 'client' | 'freelancer'; text: string; at: string }[]
   message: string
+  /** id baris `invitation` di backend (mode VITE_INVITATIONS_API); kosong = undangan demo. */
+  backendId?: number
 }
 
 export type MilestoneStatus =

@@ -232,3 +232,29 @@ export function createSeed(): ClientState {
     ],
   }
 }
+
+
+/** Nama & perusahaan di header dashboard, diambil dari akun yang login (bukan "Alex" demo). */
+export function accountUser(account: { name: string; company?: string }): ClientState['user'] {
+  const words = account.name.trim().split(/\s+/)
+  return {
+    firstName: words[0] || account.name,
+    company: account.company ?? '',
+    initials: words.slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join(''),
+  }
+}
+
+/** Workspace awal akun asli: tanpa proyek/undangan/kontrak demo milik client lain. Saldo token demo tetap ada. */
+export function createEmptyWorkspace(account: { name: string; company?: string }): ClientState {
+  return {
+    user: accountUser(account),
+    projects: [],
+    candidates: {},
+    invitations: [],
+    contracts: [],
+    wallet: { address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', network: 'Hardhat Local Network', balance: 25_000, locked: 0, spent: 0, refunded: 0 },
+    transactions: [],
+    activity: [],
+    notifications: [],
+  }
+}

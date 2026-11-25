@@ -28,6 +28,18 @@ class ClientProfile(SQLModel, table=True):
     aboutme: str  # profil usaha + jenis bantuan yang biasa dicari
 
 
+class JobRequirement(SQLModel, table=True):
+    """Kebutuhan proyek dari form client, pelengkap tabel `job` milik tim (opsi A: tabel tim tidak diubah)."""
+
+    __tablename__ = "job_requirement"
+
+    job_id: int = Field(foreign_key="job.id", primary_key=True)
+    required_skills: str = ""  # huruf kecil, dipisah koma
+    preferred_skills: str = ""
+    category: str = ""
+    industry: str = ""
+
+
 class CvChunk(SQLModel, table=True):
     __tablename__ = "cv_chunk"
 
