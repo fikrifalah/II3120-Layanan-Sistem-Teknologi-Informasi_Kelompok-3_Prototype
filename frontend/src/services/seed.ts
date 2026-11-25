@@ -157,25 +157,32 @@ const backendContract: Contract = {
       ],
       amount: 9000,
       dueDay: 30,
-      status: 'under_review',
-      reviewDeadline: new Date(Date.now() + (3 * 24 + 14) * 3_600_000).toISOString(),
-      submissions: [
-        {
-          version: 'v1.0',
-          submittedAt: new Date(Date.now() - (1 * 24 + 10) * 3_600_000).toISOString(),
-          notes: 'Both services are in the repository. Coverage is 82%. Deployment guide covers local setup; cloud section is short.',
-          files: [
-            { name: 'fastapi-source-code.zip', description: 'FastAPI source code (v1.0)', size: '24.8 MB', kind: 'archive' },
-            { name: 'docker-compose.yml', description: 'Docker Compose configuration', size: '5.2 KB', kind: 'code' },
-            { name: 'deployment-guide.pdf', description: 'Deployment guide and setup steps', size: '1.4 MB', kind: 'pdf' },
-            { name: 'pytest-report.html', description: 'Test results and coverage report', size: '486 KB', kind: 'report' },
-            { name: 'Live demo', description: 'api-demo.gigly.test', kind: 'link', url: '#' },
-            { name: 'Repository', description: 'git.gigly.test/tl-3158/backend-microservices', kind: 'repo', url: '#' },
-          ],
-        },
-      ],
+      status: 'in_progress',
+      submissions: [],
     },
   ],
+}
+
+// These open projects are separate from the existing funded contract.
+export function addInboxFixtures(state: ClientState): ClientState {
+  if (state.projects.some(p => p.id === 'PRJ-DEMO-ANALYTICS')) return state
+  const openProjects: Project[] = [
+    { ...analytics, id: 'PRJ-DEMO-ANALYTICS', title: 'Analytics Dashboard', description: 'Data analytics dashboard for operational insights.',
+      requiredSkills: ['Python', 'PostgreSQL'], preferredSkills: ['FastAPI'], hiredCandidateId: undefined,
+      status: 'inviting', budgetIdr: 18000000, startDate: isoDaysFromNow(4), endDate: isoDaysFromNow(49) },
+    { ...backend, id: 'PRJ-DEMO-INVENTORY', title: 'Inventory Management System', description: 'Build a REST API for inventory tracking and warehouse reporting.',
+      hiredCandidateId: undefined, contractId: undefined, status: 'inviting', budgetIdr: 12000000,
+      requiredSkills: ['FastAPI', 'PostgreSQL', 'Docker'], preferredSkills: ['Python'], startDate: isoDaysFromNow(2), endDate: isoDaysFromNow(27) },
+  ]
+  const candidates = { ...state.candidates }
+  const invitations = openProjects.map((project, index): Invitation => {
+    const pool = rankCandidates(project)
+    candidates[project.id] = pool
+    return { id: 'INV-' + project.id, projectId: project.id, candidateId: 'TL-3158', status: 'pending',
+      sentAt: ago(index + 1), message: '', candidateSnapshot: pool.find(c => c.id === 'TL-3158'),
+      portfolioExcerpt: 'Developed a REST API for an inventory management system using FastAPI, PostgreSQL, and Docker.' }
+  })
+  return { ...state, candidates, projects: [...state.projects, ...openProjects], invitations: [...invitations, ...state.invitations] }
 }
 
 export function createSeed(): ClientState {
@@ -213,14 +220,13 @@ export function createSeed(): ClientState {
       { id: 'TX-1', type: 'faucet', amount: 40000, status: 'confirmed', hash: '0x1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809', label: 'Demo tokens received', at: ago(30) },
     ],
     activity: [
-      { id: 'A6', at: new Date(Date.now() - 34 * 3_600_000).toISOString(), text: 'TL-3158 submitted Milestone 2 for review', projectId: 'PRJ-104', tone: 'warning' },
+      { id: 'A6', at: new Date(Date.now() - 34 * 3_600_000).toISOString(), text: 'Milestone 2 is in progress', projectId: 'PRJ-104', tone: 'warning' },
       { id: 'A5', at: ago(1), text: `AI matching found ${candidates['PRJ-112'].length} candidates for E-commerce Website Development`, projectId: 'PRJ-112', tone: 'brand' },
       { id: 'A4', at: ago(3), text: 'TL-7742 accepted your invitation — identity revealed', projectId: 'PRJ-118', tone: 'success' },
       { id: 'A3', at: ago(5), text: 'You released 6,000 SIM-IDR for Milestone 1', projectId: 'PRJ-104', tone: 'success' },
       { id: 'A2', at: ago(16), text: 'Escrow locked: 15,000 SIM-IDR', projectId: 'PRJ-104', tone: 'neutral' },
     ],
     notifications: [
-      { id: 'N3', at: new Date(Date.now() - 34 * 3_600_000).toISOString(), title: 'Milestone 2 is ready for review', body: 'Backend Microservices & API Integration', href: '/client/projects/PRJ-104/milestones/M2/review', read: false },
       { id: 'N2', at: ago(1), title: 'Your matches are ready', body: 'E-commerce Website Development', href: '/client/projects/PRJ-112/matches', read: false },
       { id: 'N1', at: ago(3), title: 'Invitation accepted', body: 'Sales Analytics Dashboard — create the contract', href: '/client/projects/PRJ-118/invitations', read: false },
     ],
