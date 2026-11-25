@@ -15,7 +15,7 @@ export default function Disputes() {
     <div>
       <PageHeader title="Disputes" subtitle="Milestones where funds are frozen until an arbiter decides." />
       {cases.length === 0 ? (
-        <EmptyState icon={<Scale className="size-6" />} title="No disputes" body="If a submission cannot be fixed with a revision request, you can raise a dispute from the milestone review." />
+        <EmptyState icon={<Scale className="size-6" />} title="No disputes" body="If a final submission misses an agreed criterion, you can raise a dispute from the milestone review." />
       ) : (
         <ul className="stagger space-y-3">
           {cases.map(({ c, m }) => (

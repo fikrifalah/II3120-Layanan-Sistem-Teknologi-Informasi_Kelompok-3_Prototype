@@ -1,3 +1,4 @@
+import { mockProfileEnabled, readDemoProfile } from '../../services/freelancerProfile'
 import { useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { AlertCircle, ArrowLeft, Bookmark, BookmarkCheck, Briefcase, CalendarClock, CheckCircle2, Coins, EyeOff, FolderOpen, Info, MapPin, Send, ShieldCheck, Sparkles } from 'lucide-react'
@@ -36,6 +37,7 @@ export default function CandidateDetail() {
 
   const revealed = store.isRevealed(projectId, c.id)
   const invitation = store.invitations.find((i) => i.projectId === projectId && i.candidateId === c.id && i.status !== 'cancelled')
+  const profile = revealed && mockProfileEnabled && c.id === 'TL-3158' ? readDemoProfile() : null
   const name = revealed ? c.identity.name : `Candidate ${c.id}`
 
   const inviteAction = invitation ? (
@@ -96,16 +98,16 @@ export default function CandidateDetail() {
 
             <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
               <div>
-                <h2 className="mb-2 text-h3">About</h2>
-                <p className="text-small leading-6 text-ink">{c.about}</p>
+                <h2 className="mb-2 text-h3">{profile ? 'Experience' : 'About'}</h2>
+                <p className="text-small leading-6 text-ink">{profile?.experience ?? c.about}</p>
               </div>
               <div>
-                <h2 className="mb-2 text-h3">Skills for this project</h2>
+                <h2 className="mb-2 text-h3">{profile ? 'Skills' : 'Skills for this project'}</h2>
                 <div className="flex flex-wrap gap-1.5">
-                  {c.matchedSkills.map((s) => (
+                  {(profile?.skills ?? c.matchedSkills).map((s) => (
                     <SkillChip key={s}>{s}</SkillChip>
                   ))}
-                  {c.missingSkills.map((s) => (
+                  {!profile && c.missingSkills.map((s) => (
                     <SkillChip key={s} missing>
                       <span className="sr-only">Missing: </span>
                       {s}
@@ -122,12 +124,12 @@ export default function CandidateDetail() {
               value={tab}
               onChange={setTab}
               tabs={[
-                { id: 'portfolio', label: 'Portfolio evidence', icon: <FolderOpen className="size-4" aria-hidden />, count: c.portfolio.length },
+                { id: 'portfolio', label: profile ? 'Portfolio' : 'Portfolio evidence', icon: <FolderOpen className="size-4" aria-hidden />, count: profile ? undefined : c.portfolio.length },
                 { id: 'skills', label: 'Score breakdown', icon: <Sparkles className="size-4" aria-hidden /> },
               ]}
             />
             <div key={tab} className="animate-fade pt-5">
-              {tab === 'portfolio' ? (
+              {tab === 'portfolio' && profile ? <p className="whitespace-pre-wrap break-words">{profile.portfolio}</p> : tab === 'portfolio' ? (
                 <ul className="stagger space-y-3">
                   {c.portfolio.map((w) => (
                     <li key={w.title} className="grid gap-4 rounded-md border border-line p-4 sm:grid-cols-[120px_minmax(0,1fr)]">
@@ -204,7 +206,7 @@ export default function CandidateDetail() {
                 <Coins className="size-5 shrink-0 text-accent" aria-hidden />
                 <div>
                   <p className="text-caption text-ink-muted">Estimated rate</p>
-                  <p className="tabular text-small font-semibold">{formatIdr(c.estimateIdr)}</p>
+                  <p className="tabular text-small font-semibold">{formatIdr(profile?.estimated_project_rate ?? c.estimateIdr)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2.5 p-3">

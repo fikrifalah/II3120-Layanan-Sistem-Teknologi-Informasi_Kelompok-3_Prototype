@@ -111,7 +111,7 @@ export function CandidateCard({ c, invitation, projectTitle }: { c: Candidate; i
               Invitation <InvitationStatusBadge status={invitation.status} />
             </div>
           ) : (
-            <Button icon={<Send className="size-4" aria-hidden />} onClick={() => setInviting(true)}>
+            <Button disabled={!c.eligible} icon={<Send className="size-4" aria-hidden />} onClick={() => setInviting(true)}>
               Invite to project
             </Button>
           )}
@@ -125,6 +125,7 @@ export function CandidateCard({ c, invitation, projectTitle }: { c: Candidate; i
 export function InviteDialog({ open, onClose, candidate, projectTitle }: { open: boolean; onClose: () => void; candidate: Candidate; projectTitle: string }) {
   const { sendInvitation } = useStore()
   const toast = useToast()
+  const [sending, setSending] = useState(false)
   const [msg, setMsg] = useState(`Hi — your profile matches what we need for "${projectTitle}". Would you like to discuss scope, timeline and rate?`)
   return (
     <Dialog
@@ -138,8 +139,12 @@ export function InviteDialog({ open, onClose, candidate, projectTitle }: { open:
           </Button>
           <Button
             icon={<Send className="size-4" aria-hidden />}
-            onClick={() => {
-              sendInvitation(candidate.projectId, candidate.id, msg)
+            disabled={sending}
+            onClick={async () => {
+              setSending(true)
+              try { await sendInvitation(candidate.projectId, candidate.id, msg) }
+              catch (e) { toast({ tone: 'danger', title: e instanceof Error ? e.message : 'Could not send invitation.' }); return }
+              finally { setSending(false) }
               onClose()
               toast({ tone: 'success', title: 'Invitation sent', body: `Candidate ${candidate.id} usually replies within a day.` })
             }}
