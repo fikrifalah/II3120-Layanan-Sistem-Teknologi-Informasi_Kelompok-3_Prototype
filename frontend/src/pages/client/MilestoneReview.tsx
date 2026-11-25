@@ -1,6 +1,7 @@
+import { openDemoFile } from '../../services/delivery'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ClipboardList, Clock, Download, ExternalLink, FileArchive, FileCode2, FileText, GitBranch, History, Info, Link2, Lock, Pencil, Scale } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ClipboardList, Clock, Download, ExternalLink, FileArchive, FileCode2, FileText, GitBranch, History, Info, Link2, Lock, Scale } from 'lucide-react'
 import { useStore } from '../../services/store'
 import { formatDateTime, formatSim } from '../../lib/format'
 import { usePageTitle } from '../../lib/usePageTitle'
@@ -47,7 +48,7 @@ export default function MilestoneReview() {
   usePageTitle(m ? `Review · Milestone ${m.seq}` : 'Review')
 
   const [checked, setChecked] = useState<Record<string, boolean>>({})
-  const [dialog, setDialog] = useState<null | 'approve' | 'revise' | 'dispute'>(null)
+  const [dialog, setDialog] = useState<null | 'approve' | 'dispute'>(null)
   const [note, setNote] = useState('')
   const [noteError, setNoteError] = useState('')
   const [releasing, setReleasing] = useState(false)
@@ -62,15 +63,17 @@ export default function MilestoneReview() {
   const unmet = m.criteria.filter((cr) => !checked[cr.id])
   const paidBefore = contract.milestones.filter((x) => x.status === 'released').reduce((n, x) => n + x.amount, 0)
 
-  const openDialog = (d: 'revise' | 'dispute') => {
-    setNote(d === 'revise' && unmet.length ? `Please complete: ${unmet.map((u) => u.text.toLowerCase()).join('; ')}.\n\n` : '')
+  const openDialog = (d: 'dispute') => {
+    setNote('')
     setNoteError('')
     setDialog(d)
   }
 
   const approve = async () => {
     setReleasing(true)
-    await store.approveMilestone(contract.id, m.id)
+    try { await store.approveMilestone(contract.id, m.id) } catch (e) {
+      setReleasing(false); setDialog(null); toast({tone:'danger',title:e instanceof Error ? e.message : 'Approval failed.'}); return
+    }
     setReleasing(false)
     setDialog(null)
     toast({ tone: 'success', title: 'Payment released', body: `${formatSim(m.amount)} sent to ${c?.identity.name ?? 'the freelancer'}.` })
@@ -79,16 +82,11 @@ export default function MilestoneReview() {
 
   const submitNote = () => {
     if (note.trim().length < 20) {
-      setNoteError('Write at least 20 characters so the freelancer knows exactly what to change.')
+      setNoteError('Write at least 20 characters describing the issue against the agreed criteria.')
       return
     }
-    if (dialog === 'revise') {
-      store.requestRevision(contract.id, m.id, note.trim())
-      toast({ tone: 'info', title: 'Revision requested', body: 'Funds stay locked. A new 5-day review starts when they resubmit.' })
-    } else {
-      store.raiseDispute(contract.id, m.id, note.trim())
-      toast({ tone: 'danger', title: 'Dispute raised', body: `${formatSim(m.amount)} is frozen until the arbiter decides.` })
-    }
+    try { store.raiseDispute(contract.id, m.id, note.trim()) } catch (e) {setNoteError(e instanceof Error ? e.message : 'Unable to open dispute.');return}
+    toast({ tone: 'danger', title: 'Dispute raised', body: 'The milestone is frozen for arbitration.' })
     setDialog(null)
   }
 
@@ -126,11 +124,6 @@ export default function MilestoneReview() {
         </div>
       </div>
 
-      {m.status === 'revision_required' && (
-        <Alert tone="brand" title="Revision requested — waiting for a new submission" className="mb-5">
-          {m.revisionNote}
-        </Alert>
-      )}
       {m.status === 'disputed' && (
         <Alert tone="danger" title="Disputed — funds are frozen" className="mb-5" action={<LinkButton to="/client/disputes" size="sm" variant="danger">Open dispute</LinkButton>}>
           {m.disputeReason}
@@ -151,7 +144,7 @@ export default function MilestoneReview() {
                 <p className="tabular text-h3">
                   {left.d}d {left.h}h {left.m}m left
                 </p>
-                <p className="text-caption text-ink-muted">Then payment releases automatically ({contract.reviewDays}-day review window)</p>
+                <p className="text-caption text-ink-muted">Client review window · {contract.reviewDays} days</p>
               </>
             ) : (
               <>
@@ -181,7 +174,7 @@ export default function MilestoneReview() {
             <>
               <ul className="divide-y divide-line">
                 {sub.files.map((f) => (
-                  <li key={f.name} className="flex items-center gap-3 py-2.5">
+                  <li key={f.blobId ?? f.name} className="flex items-center gap-3 py-2.5">
                     <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-sm bg-canvas text-ink-muted">{FILE_ICON[f.kind]}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-small font-semibold">{f.name}</span>
@@ -191,7 +184,7 @@ export default function MilestoneReview() {
                     <button
                       type="button"
                       aria-label={f.url ? `Open ${f.name}` : `Download ${f.name}`}
-                      onClick={() => toast({ tone: 'info', title: 'Demo file', body: 'Files are not stored in this prototype.' })}
+                      onClick={() => openDemoFile(f).catch(e => toast({ tone: 'info', title: e.message }))}
                       className="inline-flex size-9 items-center justify-center rounded-sm border border-line text-brand transition-colors hover:border-brand/50 hover:bg-brand-soft active:scale-95"
                     >
                       {f.url ? <ExternalLink className="size-4" aria-hidden /> : <Download className="size-4" aria-hidden />}
@@ -199,7 +192,7 @@ export default function MilestoneReview() {
                   </li>
                 ))}
               </ul>
-              {sub.notes && <p className="mt-3 rounded-md bg-canvas p-3 text-small text-ink-muted">“{sub.notes}”</p>}
+              {sub.title && <h3 className="mt-3">{sub.title}</h3>}{sub.repositoryRevision && <p>Commit or tag: {sub.repositoryRevision}</p>}{sub.declaredCriteria && <p>Freelancer declaration: {sub.declaredCriteria.length} criteria confirmed.</p>}{sub.notes && <p className="mt-3 rounded-md bg-canvas p-3 text-small text-ink-muted">“{sub.notes}”</p>}
             </>
           ) : (
             <p className="text-small text-ink-muted">Nothing submitted yet.</p>
@@ -267,9 +260,6 @@ export default function MilestoneReview() {
                   Approve & release payment
                 </Button>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button variant="secondary" icon={<Pencil className="size-4" aria-hidden />} onClick={() => openDialog('revise')}>
-                    Request revision
-                  </Button>
                   <Button variant="danger" icon={<AlertTriangle className="size-4" aria-hidden />} onClick={() => openDialog('dispute')}>
                     Raise dispute
                   </Button>
@@ -301,27 +291,25 @@ export default function MilestoneReview() {
       </Dialog>
 
       <Dialog
-        open={dialog === 'revise' || dialog === 'dispute'}
+        open={dialog === 'dispute'}
         onClose={() => setDialog(null)}
         size="lg"
-        title={dialog === 'revise' ? 'Request revision' : 'Raise a dispute'}
+        title="Raise a dispute"
         footer={
           <>
             <Button variant="quiet" onClick={() => setDialog(null)}>
               Cancel
             </Button>
             <Button variant={dialog === 'dispute' ? 'danger' : 'primary'} icon={dialog === 'dispute' ? <Scale className="size-4" aria-hidden /> : undefined} onClick={submitNote}>
-              {dialog === 'revise' ? 'Send revision request' : 'Raise dispute'}
+              Raise dispute
             </Button>
           </>
         }
       >
         <p className="mb-4">
-          {dialog === 'revise'
-            ? `${formatSim(m.amount)} stays locked. Ask only for what the agreed criteria cover; a valid resubmission starts a new ${contract.reviewDays}-day review.`
-            : `${formatSim(m.amount)} is frozen and the case goes to ${contract.arbiter}, who reviews the contract and both sides’ evidence. Try a revision request first if the issue can be fixed.`}
+          The arbiter will review the agreed criteria, submitted work and supporting evidence.
         </p>
-        <Field label={dialog === 'revise' ? 'What needs to change' : 'Reason for the dispute'} required error={noteError}>
+        <Field label="Reason for the dispute" required error={noteError}>
           {(p) => <Textarea id={p.id} aria-describedby={p.describedBy} invalid={p.invalid} rows={5} value={note} onChange={(e) => setNote(e.target.value)} />}
         </Field>
       </Dialog>

@@ -1,8 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { mockProfileEnabled, profileSignature, readDemoProfile } from './freelancerProfile'
+import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react'
 import type { ActivityItem, Candidate, Contract, Milestone, Project, Transaction } from '../types/domain'
 import { fakeHash, formatSim, uid } from '../lib/format'
 import { rankCandidates } from './matching'
-import { createSeed, type ClientState } from './seed'
+import { demoRecipient, demoWorkspace, decideDemo, updateDemo, useDemoWorkspace } from './demoWorkspace'
+import { addInboxFixtures, createSeed, type ClientState } from './seed'
 
 /**
  * Client workspace state for the prototype. Every action here stands in for a backend call
@@ -10,18 +12,8 @@ import { createSeed, type ClientState } from './seed'
  * Counterpart behaviour (a freelancer accepting, approving or submitting) is simulated with timers.
  */
 
-const STORAGE_KEY = 'gigly.client.v2'
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-function load(): ClientState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as ClientState
-  } catch {
-    /* ignore corrupt storage */
-  }
-  return createSeed()
-}
 
 export type NewProjectInput = Omit<Project, 'id' | 'status' | 'createdAt'>
 
@@ -29,15 +21,14 @@ interface Actions {
   createProject: (input: NewProjectInput) => string
   updateProject: (id: string, patch: Partial<Project>) => void
   runMatching: (projectId: string) => Promise<Candidate[]>
-  sendInvitation: (projectId: string, candidateId: string, message: string) => void
-  cancelInvitation: (invitationId: string) => void
+  sendInvitation: (projectId: string, candidateId: string, message: string) => Promise<void>
+  cancelInvitation: (invitationId: string) => Promise<void>
   createContract: (projectId: string, candidateId: string) => string
   saveContract: (contract: Contract) => void
   sendContractForApproval: (contractId: string) => void
   fundContract: (contractId: string) => Promise<Transaction>
   addDemoTokens: () => void
   approveMilestone: (contractId: string, milestoneId: string) => Promise<Transaction>
-  requestRevision: (contractId: string, milestoneId: string, note: string) => void
   raiseDispute: (contractId: string, milestoneId: string, reason: string) => void
   markAllRead: () => void
   resetDemo: () => void
@@ -55,15 +46,11 @@ interface Store extends ClientState, Actions {
 const StoreContext = createContext<Store | null>(null)
 
 export function ClientStoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ClientState>(load)
+  const state = useDemoWorkspace()!
   const stateRef = useRef(state)
   stateRef.current = state
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  }, [state])
-
-  const update = useCallback((fn: (s: ClientState) => ClientState) => setState((s) => fn(s)), [])
+  const update = updateDemo
 
   const log = useCallback(
     (text: string, tone: ActivityItem['tone'], projectId?: string, notify?: { title: string; href: string; body?: string }) =>
@@ -99,7 +86,7 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       setTimeout(() => {
         const c = stateRef.current.contracts.find((x) => x.id === contractId)
         const m = c?.milestones.find((x) => x.id === milestoneId)
-        if (!c || !m || (m.status !== 'in_progress' && m.status !== 'revision_required')) return
+        if (!c || c.candidateId === demoRecipient || !m || m.status !== 'in_progress' || m.submissions.length) return
         const version = `v${m.submissions.length + 1}.0`
         patchMilestone(contractId, milestoneId, {
           status: 'under_review',
@@ -142,7 +129,7 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         await wait(2600)
         const project = stateRef.current.projects.find((p) => p.id === projectId)
         if (!project) throw new Error('Project not found')
-        const ranked = rankCandidates(project)
+        const ranked = rankCandidates(project, 6, mockProfileEnabled ? readDemoProfile() : undefined)
         update((s) => ({ ...s, candidates: { ...s.candidates, [projectId]: ranked } }))
         if (project.status === 'draft' || project.status === 'matching') patchProject(projectId, { status: 'matching' })
         log(`AI matching ranked ${ranked.length} candidates for ${project.title}`, 'brand', projectId)
@@ -150,31 +137,40 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       },
 
       sendInvitation(projectId, candidateId, message) {
-        const inv = { id: uid('INV'), projectId, candidateId, status: 'pending' as const, sentAt: new Date().toISOString(), message }
-        update((s) => ({ ...s, invitations: [inv, ...s.invitations] }))
-        const p = stateRef.current.projects.find((x) => x.id === projectId)
-        if (p && (p.status === 'matching' || p.status === 'draft')) patchProject(projectId, { status: 'inviting' })
-        log(`Invitation sent to ${candidateId}`, 'brand', projectId)
+        return navigator.locks.request('gigly-invitations', () => {
+          const latest = demoWorkspace()
+          const candidate = latest.candidates[projectId]?.find(c => c.id === candidateId)
+          if (!candidate?.eligible || !['matching', 'inviting'].includes(latest.projects.find(p => p.id === projectId)?.status ?? '')) throw new Error('An eligible match on an open project is required.')
+          if (latest.invitations.some(i => i.projectId === projectId && i.candidateId === candidateId && i.status === 'pending')) throw new Error('Invitation already pending.')
+          const profile = candidateId === demoRecipient && mockProfileEnabled ? readDemoProfile() : null
+          if (profile && (profileSignature(profile) !== (candidate.profileSignature ?? profileSignature()) || !latest.projects.find(p => p.id === projectId)!.requiredSkills.every(s => profile.skills.includes(s)))) throw new Error('Profile changed. Run matching again.')
+          const inv = { id: uid('INV'), candidateSnapshot: candidate, portfolioExcerpt: profile?.portfolio, projectId, candidateId, status: 'pending' as const, sentAt: new Date().toISOString(), message }
+          update((s) => ({ ...s, invitations: [inv, ...s.invitations] }))
+          const p = stateRef.current.projects.find((x) => x.id === projectId)
+          if (p && (p.status === 'matching' || p.status === 'draft')) patchProject(projectId, { status: 'inviting' })
+          log(`Invitation sent to ${candidateId}`, 'brand', projectId)
 
-        // Simulated reply from the freelancer.
-        setTimeout(() => {
-          const current = stateRef.current.invitations.find((i) => i.id === inv.id)
-          if (current?.status !== 'pending') return
-          update((s) => ({
-            ...s,
-            invitations: s.invitations.map((i) => (i.id === inv.id ? { ...i, status: 'accepted', respondedAt: new Date().toISOString() } : i)),
-          }))
-          const name = stateRef.current.candidates[projectId]?.find((c) => c.id === candidateId)?.identity.name ?? candidateId
-          log(`${candidateId} accepted your invitation — this is ${name}`, 'success', projectId, {
-            title: `${name} accepted your invitation`,
-            body: p?.title,
-            href: `/client/projects/${projectId}/invitations`,
-          })
-        }, 6000)
+          if (candidateId === demoRecipient) return
+          // Other candidates have no playable demo account.
+          setTimeout(() => {
+            const current = demoWorkspace().invitations.find((i) => i.id === inv.id)
+            if (current?.status !== 'pending') return
+            update((s) => ({
+              ...s,
+              invitations: s.invitations.map((i) => (i.id === inv.id ? { ...i, status: 'accepted', respondedAt: new Date().toISOString() } : i)),
+            }))
+            const name = stateRef.current.candidates[projectId]?.find((c) => c.id === candidateId)?.identity.name ?? candidateId
+            log(`${candidateId} accepted your invitation — this is ${name}`, 'success', projectId, {
+              title: `${name} accepted your invitation`,
+              body: p?.title,
+              href: `/client/projects/${projectId}/invitations`,
+            })
+          }, 6000)
+        })
       },
 
       cancelInvitation(invitationId) {
-        update((s) => ({ ...s, invitations: s.invitations.map((i) => (i.id === invitationId ? { ...i, status: 'cancelled' } : i)) }))
+        return decideDemo(invitationId, 'cancelled')
       },
 
       createContract(projectId, candidateId) {
@@ -255,34 +251,27 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
 
       async approveMilestone(contractId, milestoneId) {
         await wait(2000)
-        const c = stateRef.current.contracts.find((x) => x.id === contractId)!
-        const m = c.milestones.find((x) => x.id === milestoneId)!
-        const tx: Transaction = { id: uid('TX'), type: 'release', amount: m.amount, status: 'confirmed', hash: fakeHash(), projectId: c.projectId, milestoneId, label: `Milestone ${m.seq} released`, at: new Date().toISOString() }
-        const next = c.milestones.find((x) => x.seq === m.seq + 1 && x.status === 'pending')
-        const allDone = c.milestones.every((x) => x.id === milestoneId || x.status === 'released' || x.status === 'refunded')
-        update((s) => ({ ...s, wallet: { ...s.wallet, locked: s.wallet.locked - m.amount, spent: s.wallet.spent + m.amount }, transactions: [tx, ...s.transactions] }))
-        patchContract(contractId, (x) => ({
-          ...x,
-          status: allDone ? 'closed' : x.status,
-          milestones: x.milestones.map((y) =>
-            y.id === milestoneId ? { ...y, status: 'released', releasedAt: new Date().toISOString() } : next && y.id === next.id ? { ...y, status: 'in_progress' } : y,
-          ),
-        }))
-        if (allDone) patchProject(c.projectId, { status: 'completed' })
-        log(`You released ${formatSim(m.amount)} for Milestone ${m.seq}`, 'success', c.projectId)
-        if (next) simulateSubmission(contractId, next.id)
-        return tx
-      },
-
-      requestRevision(contractId, milestoneId, note) {
-        patchMilestone(contractId, milestoneId, { status: 'revision_required', revisionNote: note })
-        const c = stateRef.current.contracts.find((x) => x.id === contractId)!
-        const m = c.milestones.find((x) => x.id === milestoneId)!
-        log(`Revision requested on Milestone ${m.seq}`, 'warning', c.projectId)
-        simulateSubmission(contractId, milestoneId, 15000)
+        return navigator.locks.request('gigly-review:'+contractId+':'+milestoneId, () => {
+          const state = demoWorkspace()
+          const c = state.contracts.find(x => x.id === contractId)
+          const m = c?.milestones.find(x => x.id === milestoneId)
+          if (!c || !m || c.status !== 'active' || m.status !== 'under_review' || !m.submissions.length) throw new Error('This milestone is no longer awaiting review.')
+          const tx: Transaction = { id: uid('TX'), type:'release', amount:m.amount, status:'confirmed', hash:fakeHash(), projectId:c.projectId,
+            milestoneId, label:'Milestone '+m.seq+' released', at:new Date().toISOString() }
+          const next=c.milestones.find(x=>x.seq===m.seq+1 && x.status==='pending')
+          const closed=c.milestones.every(x=>x===m || x.status==='released' || x.status==='refunded')
+          update(s=>({...s, wallet:{...s.wallet,locked:s.wallet.locked-m.amount,spent:s.wallet.spent+m.amount},transactions:[tx,...s.transactions],
+            projects:s.projects.map(p=>closed && p.id===c.projectId ? {...p,status:'completed'} : p),
+            contracts:s.contracts.map(row=>row!==c ? row : {...c,status:closed?'closed':c.status,milestones:c.milestones.map(x=>
+              x===m ? {...x,status:'released',releasedAt:tx.at} : x===next ? {...x,status:'in_progress'} : x)}),
+            activity:[{id:uid('A'),at:tx.at,text:'Released '+formatSim(m.amount)+' for Milestone '+m.seq,projectId:c.projectId,tone:'success'},...s.activity]}))
+          if(next) simulateSubmission(contractId,next.id)
+          return tx
+        })
       },
 
       raiseDispute(contractId, milestoneId, reason) {
+        if (demoWorkspace().contracts.find(c=>c.id===contractId)?.milestones.find(m=>m.id===milestoneId)?.status !== 'under_review') throw new Error('This milestone is no longer awaiting review.')
         patchMilestone(contractId, milestoneId, { status: 'disputed', disputeReason: reason })
         const c = stateRef.current.contracts.find((x) => x.id === contractId)!
         const m = c.milestones.find((x) => x.id === milestoneId)!
@@ -294,8 +283,7 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       },
 
       resetDemo() {
-        localStorage.removeItem(STORAGE_KEY)
-        setState(createSeed())
+        update(() => addInboxFixtures(createSeed()))
       },
     }),
     [log, patchContract, patchMilestone, patchProject, simulateSubmission, update],

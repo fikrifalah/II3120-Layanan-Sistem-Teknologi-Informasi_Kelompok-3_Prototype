@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import InvitationMessages from '../../components/InvitationMessages'
+import { demoRecipient } from '../../services/demoWorkspace'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Clock, FileSignature, MessageSquare, Send, Sparkles, X } from 'lucide-react'
 import { useStore } from '../../services/store'
@@ -12,6 +15,8 @@ import { AnonAvatar, PersonAvatar, ScoreRing } from '../../components/ui/Identit
 export default function Invitations() {
   const { projectId = '' } = useParams()
   const store = useStore()
+  const [thread, setThread] = useState('')
+  const [error, setError] = useState('')
   const navigate = useNavigate()
   const project = store.getProject(projectId)
   usePageTitle('Invitations')
@@ -39,6 +44,8 @@ export default function Invitations() {
         }
       />
 
+      {thread && <InvitationMessages id={thread} sender="client" close={() => setThread('')} />}
+      {error && <Alert tone="danger">{error}</Alert>}
       {pending > 0 && (
         <Alert tone="info" title={`${pending} ${pending === 1 ? 'invitation is' : 'invitations are'} waiting for a reply`} className="mb-5">
           Freelancers see your project brief. You will be notified when they answer, and their identity is revealed if they accept.
@@ -55,7 +62,7 @@ export default function Invitations() {
       ) : (
         <ul className="stagger space-y-3">
           {invs.map((inv) => {
-            const c = store.getCandidate(projectId, inv.candidateId)
+            const c = inv.candidateSnapshot ?? store.getCandidate(projectId, inv.candidateId)
             if (!c) return null
             const accepted = inv.status === 'accepted'
             const isHired = contract?.candidateId === c.id
@@ -79,16 +86,17 @@ export default function Invitations() {
                   <ScoreRing score={c.score} size={48} />
                 </div>
                 <div className="flex flex-wrap gap-2 md:justify-end">
+                  {inv.candidateId === demoRecipient && <Button variant="quiet" onClick={() => setThread(inv.id)}>Messages</Button>}
                   {inv.status === 'pending' && (
-                    <Button variant="quiet" icon={<X className="size-4" aria-hidden />} onClick={() => store.cancelInvitation(inv.id)}>
+                    <Button variant="quiet" icon={<X className="size-4" aria-hidden />} onClick={() => { setError(''); store.cancelInvitation(inv.id).catch(e => setError(e.message)) }}>
                       Cancel invitation
                     </Button>
                   )}
                   {accepted && (
                     <>
-                      <LinkButton to="/client/messages" variant="quiet" icon={<MessageSquare className="size-4" aria-hidden />}>
+                      {inv.candidateId !== demoRecipient && <LinkButton to="/client/messages" variant="quiet" icon={<MessageSquare className="size-4" aria-hidden />}>
                         Message
-                      </LinkButton>
+                      </LinkButton>}
                       {isHired ? (
                         <LinkButton to={contract.status === 'awaiting_funding' ? `/client/projects/${projectId}/fund` : contract.status === 'active' ? `/client/projects/${projectId}` : `/client/projects/${projectId}/contract`}>
                           Open contract

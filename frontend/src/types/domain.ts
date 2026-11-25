@@ -69,6 +69,7 @@ export interface Candidate {
   availability: string
   availableNow: boolean
   estimateIdr: number
+  profileSignature?: string
   matchedSkills: string[]
   missingSkills: string[]
   /** All confirmed mandatory requirements are met. Near-matches are shown separately. */
@@ -91,6 +92,9 @@ export interface Invitation {
   status: InvitationStatus
   sentAt: string
   respondedAt?: string
+  candidateSnapshot?: Candidate
+  portfolioExcerpt?: string
+  conversation?: { sender: 'client' | 'freelancer'; text: string; at: string }[]
   message: string
 }
 
@@ -110,6 +114,7 @@ export interface Criterion {
 }
 
 export interface SubmissionFile {
+  blobId?: string
   name: string
   description: string
   size?: string
@@ -118,6 +123,9 @@ export interface SubmissionFile {
 }
 
 export interface Submission {
+  title?: string
+  declaredCriteria?: string[]
+  repositoryRevision?: string
   version: string
   submittedAt: string
   notes: string

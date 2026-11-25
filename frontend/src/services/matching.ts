@@ -1,3 +1,4 @@
+import { catalog, profileSignature, type FreelancerProfile } from './freelancerProfile'
 import type { Candidate, ExperienceLevel, PortfolioEvidence, Project, ScoreBreakdown } from '../types/domain'
 
 /**
@@ -7,6 +8,7 @@ import type { Candidate, ExperienceLevel, PortfolioEvidence, Project, ScoreBreak
  */
 
 interface TalentProfile {
+  estimatedProjectRate?: number
   handle: string
   headline: string
   skills: string[]
@@ -200,7 +202,7 @@ function scoreProfile(t: TalentProfile, p: Project, rank: number): Candidate {
   const portfolio = t.portfolio.length ? (relevantWork.length / t.portfolio.length) * 85 + (relevantWork.some((w) => w.verified) ? 15 : 0) : 30
 
   const days = durationDays(p)
-  const estimate = Math.round((t.dailyRateIdr * days * 0.7) / 500_000) * 500_000
+  const estimate = t.estimatedProjectRate ?? Math.round((t.dailyRateIdr * days * 0.7) / 500_000) * 500_000
   const overBy = (estimate - p.budgetIdr) / p.budgetIdr
   const budget = overBy <= 0 ? 100 : Math.max(0, 100 - overBy * (p.budgetFlexible ? 100 : 200)) // flexible budgets halve the penalty
   const reliability = t.onTimeRate === null ? 70 : t.onTimeRate * 100 // no history is neutral, not a penalty
@@ -259,8 +261,16 @@ function scoreProfile(t: TalentProfile, p: Project, rank: number): Candidate {
 const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /** Rank the pool for a project; keep those with at least one required skill and score ≥ 50. */
-export function rankCandidates(project: Project, limit = 6): Candidate[] {
-  return POOL.map((t) => scoreProfile(t, project, 0))
+export function rankCandidates(project: Project, limit = 6, profile?: FreelancerProfile): Candidate[] {
+  return POOL.map(t => {
+    if (!profile || t.handle !== 'TL-3158') return scoreProfile(t, project, 0)
+    const current = {
+      ...t, skills: profile.skills, about: profile.experience, estimatedProjectRate: profile.estimated_project_rate,
+      portfolio: [{ title: 'Portfolio', summary: profile.portfolio, verified: false,
+        stack: catalog.filter(skill => profile.portfolio.toLowerCase().includes(skill.toLowerCase())) }],
+    }
+    return { ...scoreProfile(current, project, 0), profileSignature: profileSignature(profile) }
+  })
     .filter((c) => c.matchedSkills.length > 0 && c.score >= 50)
     .sort((a, b) => Number(b.eligible) - Number(a.eligible) || b.score - a.score)
     .slice(0, limit)
