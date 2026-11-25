@@ -1,0 +1,4518 @@
+[
+  {
+    "id": 1,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "css",
+      "next.js",
+      "react"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 2,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "layanan pemerintah",
+    "other_domain": "manufaktur",
+    "skills": [
+      "fastapi",
+      "laravel",
+      "php",
+      "postgresql",
+      "rest api"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 3,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "manufaktur",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "docker",
+      "express",
+      "mongodb",
+      "postgresql",
+      "typescript"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 4,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "firebase",
+      "flutter",
+      "kotlin",
+      "swift"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 5,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "manufaktur",
+    "skills": [
+      "data visualization",
+      "pandas",
+      "python",
+      "tableau"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 6,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "computer vision",
+      "nlp",
+      "python",
+      "pytorch",
+      "scikit-learn"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 7,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "media dan berita",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "aws",
+      "ci/cd",
+      "docker",
+      "linux",
+      "terraform"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 8,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "adobe xd",
+      "prototyping",
+      "ux research"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 9,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "adobe illustrator",
+      "canva",
+      "desain kemasan",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 10,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "google ads",
+      "seo"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 11,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "media dan berita",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "redux",
+      "tailwind css",
+      "typescript"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 12,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "express",
+      "mysql",
+      "node.js",
+      "php",
+      "redis"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 13,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "e-commerce fashion",
+    "other_domain": "manufaktur",
+    "skills": [
+      "laravel",
+      "mysql",
+      "postgresql"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 14,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "flutter",
+      "kotlin",
+      "swift"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 15,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "data visualization",
+      "power bi",
+      "python"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 16,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "nlp",
+      "python",
+      "pytorch",
+      "scikit-learn"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 17,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "aws",
+      "docker",
+      "google cloud",
+      "linux",
+      "terraform"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 18,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "prototyping",
+      "wireframing"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 19,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "adobe photoshop",
+      "branding",
+      "canva",
+      "logo design"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 20,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "copywriting",
+      "email marketing",
+      "google ads",
+      "seo",
+      "social media marketing"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 21,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "css",
+      "javascript",
+      "next.js",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 22,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "mysql",
+      "python",
+      "rest api"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 23,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "media dan berita",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "docker",
+      "mysql",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 24,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "dart",
+      "flutter",
+      "kotlin",
+      "react native",
+      "rest api"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 25,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "data visualization",
+      "sql",
+      "tableau"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 26,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "properti dan real estate",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "machine learning",
+      "python",
+      "pytorch",
+      "tensorflow"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 27,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "e-commerce fashion",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "ci/cd",
+      "docker",
+      "nginx"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 28,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "manufaktur",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "prototyping",
+      "ui design"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 29,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "adobe illustrator",
+      "canva",
+      "desain kemasan",
+      "logo design"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 30,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "media dan berita",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "content writing",
+      "google ads",
+      "meta ads",
+      "seo"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 31,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "javascript",
+      "next.js",
+      "react",
+      "vue"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 32,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "media dan berita",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "postgresql",
+      "redis",
+      "rest api"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 33,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "e-commerce fashion",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "express",
+      "mysql",
+      "node.js",
+      "vue"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 34,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "firebase",
+      "flutter",
+      "react native",
+      "rest api"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 35,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "excel",
+      "sql",
+      "tableau"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 36,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "manufaktur",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "computer vision",
+      "nlp",
+      "pytorch",
+      "tensorflow"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 37,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "aws",
+      "google cloud",
+      "nginx",
+      "terraform"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 38,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "media dan berita",
+    "skills": [
+      "adobe xd",
+      "figma",
+      "ux research"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 39,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "marketplace umkm",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "adobe illustrator",
+      "adobe photoshop",
+      "canva"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 40,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "content writing",
+      "seo",
+      "social media marketing"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 41,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "css",
+      "javascript",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 42,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "manufaktur",
+    "skills": [
+      "fastapi",
+      "node.js",
+      "python",
+      "rest api"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 43,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "docker",
+      "laravel",
+      "next.js",
+      "react",
+      "typescript"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 44,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "dart",
+      "flutter",
+      "rest api",
+      "swift"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 45,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "media dan berita",
+    "skills": [
+      "data visualization",
+      "pandas",
+      "power bi",
+      "python",
+      "tableau"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 46,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "layanan pemerintah",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "computer vision",
+      "machine learning",
+      "nlp"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 47,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "ci/cd",
+      "docker",
+      "google cloud",
+      "nginx",
+      "terraform"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 48,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "design system",
+      "figma",
+      "ui design",
+      "ux research"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 49,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "manufaktur",
+    "skills": [
+      "branding",
+      "desain kemasan",
+      "tipografi"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 50,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "email marketing",
+      "google ads",
+      "social media marketing"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 51,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "css",
+      "html",
+      "javascript",
+      "tailwind css",
+      "vue"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 52,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "e-commerce fashion",
+    "other_domain": "manufaktur",
+    "skills": [
+      "express",
+      "fastapi",
+      "laravel",
+      "php"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 53,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "docker",
+      "mysql",
+      "vue"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 54,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "manufaktur",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "dart",
+      "react native",
+      "swift"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 55,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "marketplace umkm",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "excel",
+      "power bi",
+      "sql",
+      "statistik",
+      "tableau"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 56,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "e-commerce fashion",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "computer vision",
+      "nlp",
+      "python",
+      "pytorch",
+      "scikit-learn"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 57,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "manufaktur",
+    "other_domain": "media dan berita",
+    "skills": [
+      "docker",
+      "kubernetes",
+      "linux"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 58,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "marketplace umkm",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "figma",
+      "ux research",
+      "wireframing"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 59,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "adobe photoshop",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 60,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "copywriting",
+      "meta ads",
+      "seo"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 61,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "javascript",
+      "react",
+      "tailwind css",
+      "typescript"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 62,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "express",
+      "go",
+      "rest api"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 63,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "laravel",
+      "node.js",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 64,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "flutter",
+      "rest api",
+      "swift"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 65,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "properti dan real estate",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "excel",
+      "pandas",
+      "power bi",
+      "python",
+      "sql"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 66,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "layanan pemerintah",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "nlp",
+      "pandas",
+      "python"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 67,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "aws",
+      "docker",
+      "google cloud",
+      "kubernetes",
+      "terraform"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 68,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "design system",
+      "figma",
+      "prototyping",
+      "ui design",
+      "ux research"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 69,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "properti dan real estate",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "canva",
+      "desain kemasan",
+      "logo design"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 70,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "media dan berita",
+    "skills": [
+      "content writing",
+      "email marketing",
+      "google ads",
+      "seo",
+      "social media marketing"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 71,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "media dan berita",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "next.js",
+      "react",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 72,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "django",
+      "fastapi",
+      "go",
+      "laravel",
+      "rest api"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 73,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "docker",
+      "express",
+      "mysql",
+      "vue"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 74,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "manufaktur",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "dart",
+      "kotlin",
+      "react native",
+      "rest api",
+      "swift"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 75,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "data visualization",
+      "pandas",
+      "python",
+      "statistik"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 76,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "layanan pemerintah",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "computer vision",
+      "pandas",
+      "scikit-learn"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 77,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "aws",
+      "docker",
+      "google cloud",
+      "nginx",
+      "terraform"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 78,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "figma",
+      "ui design",
+      "ux research"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 79,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "e-commerce fashion",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "adobe photoshop",
+      "branding",
+      "canva",
+      "desain kemasan"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 80,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "layanan pemerintah",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "content writing",
+      "email marketing",
+      "google ads"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 81,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "css",
+      "html",
+      "javascript",
+      "tailwind css",
+      "typescript"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 82,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "media dan berita",
+    "skills": [
+      "laravel",
+      "mysql",
+      "node.js",
+      "postgresql",
+      "redis"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 83,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "mongodb",
+      "node.js",
+      "typescript"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 84,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "layanan pemerintah",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "firebase",
+      "kotlin",
+      "react native",
+      "rest api",
+      "swift"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 85,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "excel",
+      "pandas",
+      "power bi",
+      "python",
+      "sql"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 86,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "media dan berita",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "nlp",
+      "pandas",
+      "python",
+      "pytorch",
+      "tensorflow"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 87,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "media dan berita",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "docker",
+      "kubernetes",
+      "nginx"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 88,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "adobe xd",
+      "figma",
+      "prototyping",
+      "wireframing"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 89,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "properti dan real estate",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "adobe illustrator",
+      "branding",
+      "canva",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 90,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "media dan berita",
+    "other_domain": "manufaktur",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "email marketing",
+      "meta ads",
+      "social media marketing"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 91,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "javascript",
+      "redux",
+      "tailwind css",
+      "typescript"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 92,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "layanan pemerintah",
+    "other_domain": "manufaktur",
+    "skills": [
+      "fastapi",
+      "laravel",
+      "php",
+      "python",
+      "rest api"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 93,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "docker",
+      "express",
+      "laravel",
+      "mysql"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 94,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "manufaktur",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "firebase",
+      "flutter",
+      "react native"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 95,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "properti dan real estate",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "data visualization",
+      "excel",
+      "python",
+      "sql",
+      "statistik"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 96,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "computer vision",
+      "nlp",
+      "pytorch",
+      "scikit-learn",
+      "tensorflow"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 97,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "docker",
+      "linux",
+      "nginx",
+      "terraform"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 98,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "design system",
+      "figma",
+      "wireframing"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 99,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "e-commerce fashion",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "adobe illustrator",
+      "adobe photoshop",
+      "canva",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 100,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "email marketing",
+      "seo"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 101,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "manufaktur",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "next.js",
+      "react",
+      "tailwind css"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 102,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "media dan berita",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "express",
+      "laravel",
+      "php",
+      "postgresql"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 103,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "laravel",
+      "postgresql",
+      "react"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 104,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "firebase",
+      "flutter",
+      "kotlin",
+      "react native",
+      "swift"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 105,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "marketplace umkm",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "excel",
+      "power bi",
+      "sql",
+      "tableau"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 106,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "computer vision",
+      "machine learning",
+      "nlp",
+      "pandas",
+      "tensorflow"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 107,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "properti dan real estate",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "docker",
+      "google cloud",
+      "kubernetes",
+      "linux",
+      "terraform"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 108,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "adobe xd",
+      "figma",
+      "prototyping",
+      "ui design",
+      "ux research"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 109,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "properti dan real estate",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "adobe photoshop",
+      "desain kemasan",
+      "logo design"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 110,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "google ads",
+      "meta ads",
+      "seo",
+      "social media marketing"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 111,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "media dan berita",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "css",
+      "html",
+      "javascript",
+      "redux",
+      "vue"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 112,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "express",
+      "fastapi",
+      "go",
+      "node.js",
+      "rest api"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 113,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "media dan berita",
+    "other_domain": "manufaktur",
+    "skills": [
+      "mysql",
+      "postgresql",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 114,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "media dan berita",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "firebase",
+      "flutter",
+      "kotlin"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 115,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "manufaktur",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "excel",
+      "python",
+      "sql"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 116,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "computer vision",
+      "machine learning",
+      "nlp",
+      "scikit-learn"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 117,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "media dan berita",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "docker",
+      "kubernetes",
+      "linux",
+      "nginx",
+      "terraform"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 118,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "manufaktur",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "design system",
+      "figma",
+      "wireframing"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 119,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "e-commerce fashion",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "adobe photoshop",
+      "branding",
+      "canva",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 120,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "manufaktur",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "google ads",
+      "seo",
+      "social media marketing"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 121,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "e-commerce fashion",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "next.js",
+      "redux",
+      "tailwind css",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 122,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "django",
+      "fastapi",
+      "python"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 123,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "express",
+      "laravel",
+      "next.js",
+      "node.js",
+      "postgresql"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 124,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "dart",
+      "firebase",
+      "flutter",
+      "kotlin",
+      "rest api"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 125,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "media dan berita",
+    "skills": [
+      "excel",
+      "pandas",
+      "power bi",
+      "sql",
+      "statistik"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 126,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "manufaktur",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "computer vision",
+      "machine learning",
+      "nlp",
+      "pandas",
+      "pytorch"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 127,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "aws",
+      "ci/cd",
+      "nginx",
+      "terraform"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 128,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "manufaktur",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "design system",
+      "ui design",
+      "ux research",
+      "wireframing"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 129,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "e-commerce fashion",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "adobe illustrator",
+      "branding",
+      "canva",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 130,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "layanan pemerintah",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "content writing",
+      "email marketing",
+      "google ads",
+      "meta ads"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 131,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "manufaktur",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "css",
+      "javascript",
+      "tailwind css"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 132,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "manufaktur",
+    "skills": [
+      "laravel",
+      "node.js",
+      "python"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 133,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "mongodb",
+      "mysql",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 134,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "e-commerce fashion",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "flutter",
+      "kotlin",
+      "react native",
+      "rest api",
+      "swift"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 135,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "data visualization",
+      "pandas",
+      "power bi",
+      "python",
+      "statistik"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 136,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "layanan pemerintah",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "nlp",
+      "python",
+      "scikit-learn",
+      "tensorflow"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 137,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "ci/cd",
+      "docker",
+      "kubernetes",
+      "terraform"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 138,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "properti dan real estate",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "design system",
+      "figma",
+      "ui design"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 139,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "media dan berita",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "adobe illustrator",
+      "branding",
+      "desain kemasan",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 140,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "marketplace umkm",
+    "other_domain": "manufaktur",
+    "skills": [
+      "copywriting",
+      "email marketing",
+      "google ads",
+      "seo"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 141,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "layanan pemerintah",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "css",
+      "javascript",
+      "react",
+      "tailwind css",
+      "vue"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 142,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "express",
+      "postgresql",
+      "python",
+      "rest api"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 143,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "postgresql",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 144,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "kotlin",
+      "react native",
+      "swift"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 145,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "media dan berita",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "data visualization",
+      "pandas",
+      "power bi"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 146,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "nlp",
+      "pandas",
+      "pytorch",
+      "scikit-learn",
+      "tensorflow"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 147,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "docker",
+      "kubernetes",
+      "linux",
+      "terraform"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 148,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "properti dan real estate",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "figma",
+      "ux research"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 149,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "branding",
+      "canva",
+      "desain kemasan"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 150,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "manufaktur",
+    "skills": [
+      "content writing",
+      "email marketing",
+      "google ads",
+      "seo"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 151,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "html",
+      "react",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 152,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "manufaktur",
+    "other_domain": "media dan berita",
+    "skills": [
+      "django",
+      "go",
+      "mysql",
+      "rest api"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 153,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "express",
+      "mysql",
+      "postgresql",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 154,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "layanan pemerintah",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "dart",
+      "kotlin",
+      "rest api",
+      "swift"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 155,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "data visualization",
+      "excel",
+      "power bi",
+      "sql"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 156,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "properti dan real estate",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "computer vision",
+      "machine learning",
+      "nlp",
+      "python",
+      "tensorflow"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 157,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "manufaktur",
+    "skills": [
+      "aws",
+      "ci/cd",
+      "kubernetes",
+      "nginx"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 158,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "prototyping",
+      "wireframing"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 159,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "adobe illustrator",
+      "adobe photoshop",
+      "canva",
+      "desain kemasan",
+      "tipografi"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 160,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "layanan pemerintah",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "content writing",
+      "email marketing",
+      "meta ads",
+      "seo",
+      "social media marketing"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 161,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "javascript",
+      "redux",
+      "tailwind css",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 162,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "e-commerce fashion",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "express",
+      "fastapi",
+      "laravel"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 163,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "mongodb",
+      "mysql",
+      "vue"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 164,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "manufaktur",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "flutter",
+      "kotlin",
+      "react native",
+      "rest api"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 165,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "media dan berita",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "data visualization",
+      "excel",
+      "pandas",
+      "power bi",
+      "tableau"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 166,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "machine learning",
+      "nlp",
+      "pytorch",
+      "scikit-learn",
+      "tensorflow"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 167,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "aws",
+      "google cloud",
+      "kubernetes"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 168,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "properti dan real estate",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "figma",
+      "ui design",
+      "ux research",
+      "wireframing"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 169,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "media dan berita",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "adobe illustrator",
+      "adobe photoshop",
+      "branding",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 170,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "media dan berita",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "google ads",
+      "meta ads",
+      "seo"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 171,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "css",
+      "react",
+      "redux",
+      "tailwind css",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 172,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "media dan berita",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "go",
+      "postgresql",
+      "python",
+      "redis",
+      "rest api"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 173,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "media dan berita",
+    "skills": [
+      "mysql",
+      "react",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 174,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "firebase",
+      "kotlin",
+      "react native",
+      "rest api",
+      "swift"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 175,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "layanan pemerintah",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "power bi",
+      "python",
+      "sql"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 176,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "media dan berita",
+    "skills": [
+      "computer vision",
+      "nlp",
+      "pandas",
+      "python",
+      "pytorch"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 177,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "e-commerce fashion",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "aws",
+      "docker",
+      "google cloud",
+      "kubernetes",
+      "nginx"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 178,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "marketplace umkm",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "ui design"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 179,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "adobe illustrator",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 180,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "content writing",
+      "email marketing",
+      "google ads",
+      "meta ads",
+      "social media marketing"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 181,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "css",
+      "javascript",
+      "redux",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 182,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "media dan berita",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "fastapi",
+      "laravel",
+      "mysql",
+      "python"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 183,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "laravel",
+      "mongodb",
+      "mysql",
+      "node.js",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 184,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "manufaktur",
+    "skills": [
+      "firebase",
+      "flutter",
+      "kotlin",
+      "react native",
+      "swift"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 185,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "excel",
+      "power bi",
+      "sql",
+      "statistik"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 186,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "media dan berita",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "computer vision",
+      "machine learning",
+      "pandas"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 187,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "aws",
+      "ci/cd",
+      "kubernetes",
+      "nginx",
+      "terraform"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 188,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "manufaktur",
+    "skills": [
+      "figma",
+      "prototyping",
+      "ui design",
+      "ux research",
+      "wireframing"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 189,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "manufaktur",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "adobe illustrator",
+      "adobe photoshop",
+      "branding"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 190,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "meta ads"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 191,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "css",
+      "javascript",
+      "redux"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 192,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "manufaktur",
+    "skills": [
+      "express",
+      "node.js",
+      "postgresql",
+      "python",
+      "rest api"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 193,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "media dan berita",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "express",
+      "mysql",
+      "next.js",
+      "typescript"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 194,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "layanan pemerintah",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "dart",
+      "kotlin",
+      "react native",
+      "swift"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 195,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "layanan pemerintah",
+    "other_domain": "media dan berita",
+    "skills": [
+      "data visualization",
+      "power bi",
+      "python",
+      "sql",
+      "tableau"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 196,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "manufaktur",
+    "skills": [
+      "computer vision",
+      "pandas",
+      "tensorflow"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 197,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "layanan pemerintah",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "aws",
+      "docker",
+      "google cloud",
+      "kubernetes",
+      "terraform"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 198,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "media dan berita",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "figma",
+      "prototyping"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 199,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "e-commerce fashion",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "adobe photoshop",
+      "branding",
+      "canva",
+      "desain kemasan",
+      "logo design"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 200,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "properti dan real estate",
+    "other_domain": "media dan berita",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "email marketing"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 201,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "css",
+      "javascript",
+      "next.js",
+      "vue"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 202,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "go",
+      "mysql",
+      "redis"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 203,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "media dan berita",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "docker",
+      "node.js",
+      "react"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 204,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "dart",
+      "firebase",
+      "kotlin",
+      "react native",
+      "rest api"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 205,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "e-commerce fashion",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "power bi",
+      "python",
+      "sql",
+      "statistik"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 206,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "properti dan real estate",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "computer vision",
+      "pandas",
+      "pytorch"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 207,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "marketplace umkm",
+    "other_domain": "media dan berita",
+    "skills": [
+      "ci/cd",
+      "docker",
+      "kubernetes",
+      "linux",
+      "nginx"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 208,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "adobe xd",
+      "figma",
+      "ui design",
+      "wireframing"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 209,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "manufaktur",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "adobe illustrator",
+      "canva",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 210,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "properti dan real estate",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "google ads",
+      "social media marketing"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 211,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "e-commerce fashion",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "next.js",
+      "react",
+      "redux"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 212,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "layanan pemerintah",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "django",
+      "postgresql",
+      "rest api"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 213,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "e-commerce fashion",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "docker",
+      "postgresql",
+      "react",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 214,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "dart",
+      "flutter",
+      "kotlin",
+      "swift"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 215,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "properti dan real estate",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "excel",
+      "power bi",
+      "python",
+      "statistik",
+      "tableau"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 216,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "machine learning",
+      "nlp",
+      "python",
+      "pytorch",
+      "tensorflow"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 217,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "aws",
+      "docker",
+      "kubernetes",
+      "nginx"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 218,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "layanan pemerintah",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "figma",
+      "ui design",
+      "wireframing"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 219,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "properti dan real estate",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "branding",
+      "canva",
+      "tipografi"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 220,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "media dan berita",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "copywriting",
+      "google ads",
+      "meta ads",
+      "seo",
+      "social media marketing"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 221,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "css",
+      "html",
+      "javascript",
+      "react",
+      "redux"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 222,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "properti dan real estate",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "express",
+      "go",
+      "python"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 223,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "pendidikan dan e-learning",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "next.js",
+      "postgresql",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 224,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "dart",
+      "flutter",
+      "kotlin",
+      "react native",
+      "swift"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 225,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "layanan pemerintah",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "data visualization",
+      "excel",
+      "power bi",
+      "python",
+      "statistik"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 226,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "machine learning",
+      "pandas",
+      "python",
+      "pytorch"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 227,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "properti dan real estate",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "aws",
+      "google cloud",
+      "kubernetes"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 228,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "properti dan real estate",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "adobe xd",
+      "figma",
+      "prototyping",
+      "ux research",
+      "wireframing"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 229,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "adobe illustrator",
+      "branding",
+      "canva",
+      "desain kemasan",
+      "logo design"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 230,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "e-commerce fashion",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "email marketing",
+      "google ads",
+      "social media marketing"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 231,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "html",
+      "next.js",
+      "react",
+      "tailwind css",
+      "typescript"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 232,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "mysql",
+      "php",
+      "redis"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 233,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "media dan berita",
+    "skills": [
+      "express",
+      "laravel",
+      "mysql",
+      "node.js",
+      "typescript"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 234,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "dart",
+      "flutter",
+      "react native"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 235,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "layanan pemerintah",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "pandas",
+      "statistik",
+      "tableau"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 236,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "layanan pemerintah",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "nlp",
+      "python",
+      "scikit-learn"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 237,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "ci/cd",
+      "nginx",
+      "terraform"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 238,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "properti dan real estate",
+    "other_domain": "media dan berita",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "prototyping",
+      "ui design"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 239,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "adobe illustrator",
+      "desain kemasan",
+      "logo design"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 240,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "media dan berita",
+    "skills": [
+      "copywriting",
+      "google ads",
+      "meta ads"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 241,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "html",
+      "javascript",
+      "next.js",
+      "redux"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 242,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "express",
+      "php",
+      "rest api"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 243,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "e-commerce fashion",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "docker",
+      "mysql",
+      "node.js",
+      "postgresql"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 244,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "dart",
+      "firebase",
+      "react native",
+      "rest api",
+      "swift"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 245,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "pandas",
+      "sql",
+      "statistik"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 246,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "properti dan real estate",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "nlp",
+      "pandas",
+      "python",
+      "tensorflow"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 247,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "marketplace umkm",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "ci/cd",
+      "google cloud",
+      "nginx"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 248,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "marketplace umkm",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "adobe xd",
+      "prototyping",
+      "ui design",
+      "wireframing"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 249,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "marketplace umkm",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "adobe illustrator",
+      "adobe photoshop",
+      "branding",
+      "desain kemasan",
+      "logo design"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 250,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "email marketing",
+      "social media marketing"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 251,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "css",
+      "javascript",
+      "redux",
+      "typescript",
+      "vue"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 252,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "django",
+      "fastapi",
+      "node.js",
+      "rest api"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 253,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "express",
+      "mongodb",
+      "react",
+      "typescript"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 254,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "media dan berita",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "dart",
+      "flutter",
+      "kotlin",
+      "rest api",
+      "swift"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 255,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "data visualization",
+      "excel",
+      "pandas"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 256,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "media dan berita",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "computer vision",
+      "pytorch",
+      "scikit-learn"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 257,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "marketplace umkm",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "aws",
+      "ci/cd",
+      "linux",
+      "terraform"
+    ],
+    "seniority": "senior",
+    "years": 10
+  },
+  {
+    "id": 258,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "e-commerce fashion",
+    "other_domain": "media dan berita",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "figma",
+      "prototyping",
+      "wireframing"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 259,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "layanan pemerintah",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "branding",
+      "canva",
+      "logo design",
+      "tipografi"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 260,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "layanan pemerintah",
+    "other_domain": "media dan berita",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "seo",
+      "social media marketing"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 261,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "javascript",
+      "react",
+      "tailwind css"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 262,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "django",
+      "express",
+      "go",
+      "redis"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 263,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "logistik dan pengiriman",
+    "skills": [
+      "express",
+      "next.js",
+      "postgresql",
+      "typescript"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 264,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "kuliner dan f&b",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "dart",
+      "flutter",
+      "kotlin",
+      "react native",
+      "rest api"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 265,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "properti dan real estate",
+    "other_domain": "media dan berita",
+    "skills": [
+      "data visualization",
+      "pandas",
+      "sql"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 266,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "e-commerce fashion",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "computer vision",
+      "pandas",
+      "pytorch",
+      "scikit-learn",
+      "tensorflow"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 267,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "pariwisata dan hotel",
+    "other_domain": "media dan berita",
+    "skills": [
+      "aws",
+      "google cloud",
+      "linux",
+      "terraform"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 268,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "adobe xd",
+      "figma",
+      "ui design",
+      "wireframing"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 269,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "media dan berita",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "adobe illustrator",
+      "branding",
+      "desain kemasan",
+      "logo design"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 270,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "manufaktur",
+    "skills": [
+      "copywriting",
+      "google ads",
+      "seo"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 271,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "manufaktur",
+    "other_domain": "media dan berita",
+    "skills": [
+      "javascript",
+      "redux",
+      "tailwind css",
+      "vue"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 272,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "manufaktur",
+    "skills": [
+      "express",
+      "laravel",
+      "mysql",
+      "node.js",
+      "rest api"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 273,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "docker",
+      "laravel",
+      "vue"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 274,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "media dan berita",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "dart",
+      "react native",
+      "rest api"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 275,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "media dan berita",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "excel",
+      "power bi",
+      "python",
+      "sql",
+      "tableau"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 276,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "e-commerce fashion",
+    "other_domain": "media dan berita",
+    "skills": [
+      "machine learning",
+      "nlp",
+      "pandas",
+      "scikit-learn",
+      "tensorflow"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 277,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "manufaktur",
+    "skills": [
+      "aws",
+      "docker",
+      "google cloud",
+      "kubernetes",
+      "nginx"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 278,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "properti dan real estate",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "design system",
+      "figma",
+      "ui design",
+      "ux research",
+      "wireframing"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 279,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "logistik dan pengiriman",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "adobe illustrator",
+      "branding",
+      "canva",
+      "logo design"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 280,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "layanan pemerintah",
+    "other_domain": "media dan berita",
+    "skills": [
+      "content writing",
+      "copywriting",
+      "email marketing",
+      "seo",
+      "social media marketing"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 281,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "next.js",
+      "react",
+      "vue"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 282,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "manufaktur",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "go",
+      "php",
+      "python"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 283,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "mysql",
+      "node.js",
+      "typescript"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 284,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "media dan berita",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "firebase",
+      "flutter",
+      "rest api",
+      "swift"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 285,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "e-commerce fashion",
+    "other_domain": "kuliner dan f&b",
+    "skills": [
+      "data visualization",
+      "excel",
+      "pandas",
+      "python",
+      "tableau"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 286,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "marketplace umkm",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "machine learning",
+      "nlp",
+      "python",
+      "pytorch",
+      "scikit-learn"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 287,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "layanan pemerintah",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "aws",
+      "ci/cd",
+      "kubernetes",
+      "terraform"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 288,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "ui design"
+    ],
+    "seniority": "senior",
+    "years": 7
+  },
+  {
+    "id": 289,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "kesehatan dan klinik",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "adobe illustrator",
+      "branding",
+      "desain kemasan",
+      "tipografi"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 290,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "layanan pemerintah",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "copywriting",
+      "email marketing",
+      "google ads",
+      "meta ads",
+      "social media marketing"
+    ],
+    "seniority": "senior",
+    "years": 6
+  },
+  {
+    "id": 291,
+    "category": "frontend",
+    "role": "Frontend Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "layanan pemerintah",
+    "skills": [
+      "css",
+      "javascript",
+      "next.js",
+      "tailwind css"
+    ],
+    "seniority": "mid",
+    "years": 5
+  },
+  {
+    "id": 292,
+    "category": "backend",
+    "role": "Backend Developer",
+    "domain": "media dan berita",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "fastapi",
+      "laravel",
+      "mysql",
+      "postgresql",
+      "python"
+    ],
+    "seniority": "mid",
+    "years": 3
+  },
+  {
+    "id": 293,
+    "category": "fullstack",
+    "role": "Fullstack Developer",
+    "domain": "marketplace umkm",
+    "other_domain": "properti dan real estate",
+    "skills": [
+      "express",
+      "laravel",
+      "typescript"
+    ],
+    "seniority": "junior",
+    "years": 1
+  },
+  {
+    "id": 294,
+    "category": "mobile",
+    "role": "Mobile Developer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "kesehatan dan klinik",
+    "skills": [
+      "dart",
+      "react native",
+      "swift"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 295,
+    "category": "data",
+    "role": "Data Analyst",
+    "domain": "e-commerce fashion",
+    "other_domain": "manufaktur",
+    "skills": [
+      "data visualization",
+      "pandas",
+      "power bi"
+    ],
+    "seniority": "junior",
+    "years": 2
+  },
+  {
+    "id": 296,
+    "category": "ml",
+    "role": "Machine Learning Engineer",
+    "domain": "properti dan real estate",
+    "other_domain": "marketplace umkm",
+    "skills": [
+      "machine learning",
+      "nlp",
+      "pandas",
+      "scikit-learn",
+      "tensorflow"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 297,
+    "category": "devops",
+    "role": "DevOps Engineer",
+    "domain": "marketplace umkm",
+    "other_domain": "pendidikan dan e-learning",
+    "skills": [
+      "aws",
+      "ci/cd",
+      "linux"
+    ],
+    "seniority": "mid",
+    "years": 4
+  },
+  {
+    "id": 298,
+    "category": "uiux",
+    "role": "UI/UX Designer",
+    "domain": "marketplace umkm",
+    "other_domain": "e-commerce fashion",
+    "skills": [
+      "adobe xd",
+      "design system",
+      "ui design"
+    ],
+    "seniority": "senior",
+    "years": 8
+  },
+  {
+    "id": 299,
+    "category": "graphic",
+    "role": "Graphic Designer",
+    "domain": "layanan pemerintah",
+    "other_domain": "fintech dan pembayaran",
+    "skills": [
+      "adobe illustrator",
+      "adobe photoshop",
+      "canva",
+      "desain kemasan",
+      "tipografi"
+    ],
+    "seniority": "senior",
+    "years": 9
+  },
+  {
+    "id": 300,
+    "category": "content",
+    "role": "Content Writer & Digital Marketer",
+    "domain": "fintech dan pembayaran",
+    "other_domain": "pariwisata dan hotel",
+    "skills": [
+      "copywriting",
+      "email marketing",
+      "meta ads",
+      "seo",
+      "social media marketing"
+    ],
+    "seniority": "senior",
+    "years": 7
+  }
+]

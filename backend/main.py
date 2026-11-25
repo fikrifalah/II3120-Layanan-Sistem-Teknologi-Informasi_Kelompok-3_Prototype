@@ -6,6 +6,8 @@ from fastapi.staticfiles import StaticFiles
 
 from database import init_db
 import models  # noqa: F401
+from services.ai_matching.router import router as ai_matching_router
+
 
 UPLOADS_DIR = Path(__file__).resolve().parent / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
@@ -29,7 +31,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.include_router(ai_matching_router)
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 
