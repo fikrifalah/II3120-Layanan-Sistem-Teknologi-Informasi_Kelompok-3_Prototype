@@ -1,4 +1,7 @@
 import { openDemoFile } from '../../services/delivery'
+import { downloadApiFile } from '../../services/projectWork'
+import { currentToken } from '../../services/auth'
+import { paidAmount } from '../../services/clientContracts'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ClipboardList, Clock, Download, ExternalLink, FileArchive, FileCode2, FileText, GitBranch, History, Info, Link2, Lock, Scale } from 'lucide-react'
@@ -61,7 +64,7 @@ export default function MilestoneReview() {
   const canAct = m.status === 'under_review'
   const allMet = m.criteria.every((cr) => checked[cr.id])
   const unmet = m.criteria.filter((cr) => !checked[cr.id])
-  const paidBefore = contract.milestones.filter((x) => x.status === 'released').reduce((n, x) => n + x.amount, 0)
+  const paidBefore = contract.milestones.reduce((n, x) => n + paidAmount(x), 0)
 
   const openDialog = (d: 'dispute') => {
     setNote('')
@@ -80,12 +83,12 @@ export default function MilestoneReview() {
     navigate(`/client/projects/${projectId}`)
   }
 
-  const submitNote = () => {
+  const submitNote = async () => {
     if (note.trim().length < 20) {
       setNoteError('Write at least 20 characters describing the issue against the agreed criteria.')
       return
     }
-    try { store.raiseDispute(contract.id, m.id, note.trim()) } catch (e) {setNoteError(e instanceof Error ? e.message : 'Unable to open dispute.');return}
+    try { await store.raiseDispute(contract.id, m.id, note.trim()) } catch (e) {setNoteError(e instanceof Error ? e.message : 'Unable to open dispute.');return}
     toast({ tone: 'danger', title: 'Dispute raised', body: 'The milestone is frozen for arbitration.' })
     setDialog(null)
   }
@@ -158,7 +161,7 @@ export default function MilestoneReview() {
           <Lock className="size-8 shrink-0 text-brand" aria-hidden />
           <div>
             <p className="tabular text-h3">{formatSim(m.amount)}</p>
-            <p className="text-caption text-ink-muted">{m.status === 'released' ? 'Released from escrow' : `Locked in escrow for Milestone ${m.seq}`}</p>
+            <p className="text-caption text-ink-muted">{m.status === 'released' ? 'Released from escrow' : m.status === 'split' ? 'Split by arbiter verdict' : m.status === 'refunded' ? 'Refunded to you' : `Locked in escrow for Milestone ${m.seq}`}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-lg border border-info/15 bg-info-soft p-4 text-small text-ink">
@@ -184,7 +187,7 @@ export default function MilestoneReview() {
                     <button
                       type="button"
                       aria-label={f.url ? `Open ${f.name}` : `Download ${f.name}`}
-                      onClick={() => openDemoFile(f).catch(e => toast({ tone: 'info', title: e.message }))}
+                      onClick={() => (f.apiId ? downloadApiFile(currentToken(), f) : openDemoFile(f)).catch(e => toast({ tone: 'info', title: e.message }))}
                       className="inline-flex size-9 items-center justify-center rounded-sm border border-line text-brand transition-colors hover:border-brand/50 hover:bg-brand-soft active:scale-95"
                     >
                       {f.url ? <ExternalLink className="size-4" aria-hidden /> : <Download className="size-4" aria-hidden />}

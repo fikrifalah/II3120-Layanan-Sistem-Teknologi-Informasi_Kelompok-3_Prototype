@@ -14,6 +14,20 @@ import {
 } from './matching'
 import { demoRecipient, demoWorkspace, decideDemo, freshWorkspace, updateDemo, useDemoWorkspace } from './demoWorkspace'
 import { type ClientState } from './seed'
+import {
+  applyRemote,
+  approveMilestoneApi,
+  closeContractApi,
+  contractsApiEnabled,
+  createContractApi,
+  faucetApi,
+  fetchContractApi,
+  fetchVerdictApi,
+  fetchWalletApi,
+  lockEscrowApi,
+  raiseDisputeApi,
+  walletFrom,
+} from './clientContracts'
 
 /**
  * Client workspace state for the prototype. Every action here stands in for a backend call
@@ -34,11 +48,11 @@ interface Actions {
   cancelInvitation: (invitationId: string) => Promise<void>
   createContract: (projectId: string, candidateId: string) => string
   saveContract: (contract: Contract) => void
-  sendContractForApproval: (contractId: string) => void
+  sendContractForApproval: (contractId: string) => Promise<void>
   fundContract: (contractId: string) => Promise<Transaction>
-  addDemoTokens: () => void
+  addDemoTokens: () => Promise<void>
   approveMilestone: (contractId: string, milestoneId: string) => Promise<Transaction>
-  raiseDispute: (contractId: string, milestoneId: string, reason: string) => void
+  raiseDispute: (contractId: string, milestoneId: string, reason: string) => Promise<void>
   markAllRead: () => void
   resetDemo: () => void
 }
@@ -130,6 +144,81 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       patchContract(contractId, (c) => ({ ...c, milestones: c.milestones.map((m) => (m.id === milestoneId ? { ...m, ...patch } : m)) })),
     [patchContract],
   )
+
+  /** Mode backend: tarik status kontrak dari backend; beri notifikasi saat freelancer submit atau arbiter memutus. */
+  const syncContract = useCallback(
+    async (contractId: string) => {
+      const local = demoWorkspace().contracts.find((c) => c.id === contractId)
+      if (!local?.backendId) return
+      let remote = await fetchContractApi(local.backendId)
+      // Semua milestone selesai: tutup kontrak on-chain, sama seperti alur demo yang menutup otomatis.
+      if (remote.status === 'active' && remote.milestones.every((m) => ['released', 'refunded', 'split'].includes(m.status))) {
+        await closeContractApi(local.backendId)
+        remote = await fetchContractApi(local.backendId)
+      }
+      let next = applyRemote(local, remote)
+      const verdictTxs: Transaction[] = []
+      for (const r of remote.milestones) {
+        const m = next.milestones.find((x) => x.seq === r.sequence)
+        const decided = m && r.dispute_id && ['released', 'refunded', 'split'].includes(r.status) && local.milestones.find((x) => x.seq === m.seq)?.status === 'disputed'
+        if (!m || !r.dispute_id || !(decided || (m.status === 'split' && !m.settlement))) continue
+        const verdict = await fetchVerdictApi(r.dispute_id)
+        if (!verdict) continue
+        const split = { freelancer: verdict.freelancer_payout, client: verdict.client_refund }
+        next = { ...next, milestones: next.milestones.map((x) => (x.seq === m.seq ? { ...x, settlement: split } : x)) }
+        const at = new Date().toISOString()
+        if (split.freelancer) verdictTxs.push({ id: uid('TX'), type: 'release', amount: split.freelancer, status: 'confirmed', hash: verdict.transaction_hash, projectId: next.projectId, milestoneId: m.id, label: `Milestone ${m.seq} paid by arbiter verdict`, at })
+        if (split.client) verdictTxs.push({ id: uid('TX'), type: 'refund', amount: split.client, status: 'confirmed', hash: verdict.transaction_hash, projectId: next.projectId, milestoneId: m.id, label: `Milestone ${m.seq} refunded by arbiter verdict`, at })
+      }
+      const latest = demoWorkspace().contracts.find((c) => c.id === contractId)
+      if (!latest || JSON.stringify(next) === JSON.stringify(latest)) return
+      update((s) => ({
+        ...s,
+        contracts: s.contracts.map((c) => (c.id === contractId ? next : c)),
+        transactions: [...verdictTxs, ...s.transactions],
+        projects: s.projects.map((p) =>
+          p.id !== next.projectId ? p : { ...p, status: next.status === 'closed' ? 'completed' : next.status === 'active' ? 'active' : p.status }),
+      }))
+      const title = demoWorkspace().projects.find((p) => p.id === next.projectId)?.title
+      const who = demoWorkspace().candidates[next.projectId]?.find((c) => c.id === next.candidateId)?.identity.name ?? next.candidateId
+      if (latest.status !== 'closed' && next.status === 'closed') log('All milestones settled. Contract closed on-chain.', 'success', next.projectId)
+      for (const m of next.milestones) {
+        const before = latest.milestones.find((x) => x.seq === m.seq)?.status
+        if (before === m.status) continue
+        if (m.status === 'under_review') {
+          log(`${who} submitted Milestone ${m.seq}`, 'warning', next.projectId, {
+            title: `Milestone ${m.seq} is ready for review`, body: title, href: `/client/projects/${next.projectId}/milestones/${m.id}/review`,
+          })
+        } else if (before === 'disputed') {
+          log(`Arbiter resolved the dispute on Milestone ${m.seq} (${m.status})`, 'brand', next.projectId, {
+            title: `Dispute on Milestone ${m.seq} resolved`, body: title, href: `/client/projects/${next.projectId}`,
+          })
+        }
+      }
+    },
+    [log, update],
+  )
+
+  const syncWallet = useCallback(async () => {
+    const remote = await fetchWalletApi()
+    update((s) => {
+      const ms = s.contracts.filter((c) => c.backendId).flatMap((c) => c.milestones)
+      const sum = (side: 'freelancer' | 'client') => ms.reduce((n, m) => n + (m.settlement?.[side] ?? 0), 0)
+      const wallet = { ...walletFrom(remote, s.wallet), spent: sum('freelancer'), refunded: sum('client') }
+      return JSON.stringify(wallet) === JSON.stringify(s.wallet) ? s : { ...s, wallet }
+    })
+  }, [update])
+
+  useEffect(() => {
+    if (!contractsApiEnabled) return
+    const tick = () => {
+      syncWallet().catch(() => undefined)
+      for (const c of stateRef.current.contracts) if (c.backendId && c.status !== 'closed') syncContract(c.id).catch(() => undefined)
+    }
+    tick()
+    const timer = window.setInterval(tick, 5000)
+    return () => window.clearInterval(timer)
+  }, [syncContract, syncWallet])
 
   /** Simulated freelancer: submits work on an in-progress milestone after a short delay. */
   const simulateSubmission = useCallback(
@@ -268,7 +357,22 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         update((s) => ({ ...s, contracts: s.contracts.map((c) => (c.id === contract.id ? contract : c)) }))
       },
 
-      sendContractForApproval(contractId) {
+      async sendContractForApproval(contractId) {
+        if (contractsApiEnabled) {
+          const state = demoWorkspace()
+          const c = state.contracts.find((x) => x.id === contractId)!
+          const p = state.projects.find((x) => x.id === c.projectId)!
+          const inv = state.invitations.find((i) => i.projectId === c.projectId && i.candidateId === c.candidateId && i.status === 'accepted' && i.backendId)
+          if (!inv?.backendId) throw new Error('This freelancer accepted a demo invitation. Invite them again so the contract can be recorded.')
+          const next = applyRemote(c, await createContractApi(inv.backendId, p, c))
+          update((s) => ({ ...s, contracts: s.contracts.map((x) => (x.id === contractId ? next : x)) }))
+          patchProject(c.projectId, { status: 'funding' })
+          log(`Contract v${c.version} recorded · SHA-256 ${next.documentHash?.slice(0, 12)}…`, 'success', c.projectId, {
+            title: 'Contract recorded — fund escrow to start',
+            href: `/client/projects/${c.projectId}/fund`,
+          })
+          return
+        }
         patchContract(contractId, (c) => ({ ...c, status: 'pending_approval' }))
         const c = stateRef.current.contracts.find((x) => x.id === contractId)!
         log(`Contract v${c.version} sent to ${c.candidateId} for approval`, 'brand', c.projectId)
@@ -289,6 +393,15 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         const c = s0.contracts.find((x) => x.id === contractId)!
         const total = c.milestones.reduce((n, m) => n + m.amount, 0)
         if (s0.wallet.balance < total) throw new Error('Insufficient balance')
+        if (contractsApiEnabled) {
+          if (!c.backendId) throw new Error('Contract is not recorded yet.')
+          const r = await lockEscrowApi(c.backendId)
+          const tx: Transaction = { id: uid('TX'), type: 'fund', amount: total, status: 'confirmed', hash: r.transaction_hash, projectId: c.projectId, label: `Escrow funded · ${formatSim(total)}`, at: new Date().toISOString() }
+          update((s) => ({ ...s, transactions: [tx, ...s.transactions] }))
+          await Promise.all([syncContract(contractId), syncWallet()])
+          log(`Escrow locked: ${formatSim(total)}. Work has started.`, 'success', c.projectId)
+          return tx
+        }
         await wait(2400)
         const tx: Transaction = { id: uid('TX'), type: 'fund', amount: total, status: 'confirmed', hash: fakeHash(), projectId: c.projectId, label: `Escrow funded · ${formatSim(total)}`, at: new Date().toISOString() }
         update((s) => ({ ...s, wallet: { ...s.wallet, balance: s.wallet.balance - total, locked: s.wallet.locked + total }, transactions: [tx, ...s.transactions] }))
@@ -306,12 +419,29 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         return tx
       },
 
-      addDemoTokens() {
+      async addDemoTokens() {
+        if (contractsApiEnabled) {
+          const r = await faucetApi()
+          const tx: Transaction = { id: uid('TX'), type: 'faucet', amount: Number(r.minted), status: 'confirmed', hash: r.transaction_hash, label: 'Demo tokens received', at: new Date().toISOString() }
+          update((s) => ({ ...s, wallet: walletFrom(r, s.wallet), transactions: [tx, ...s.transactions] }))
+          return
+        }
         const tx: Transaction = { id: uid('TX'), type: 'faucet', amount: 20000, status: 'confirmed', hash: fakeHash(), label: 'Demo tokens received', at: new Date().toISOString() }
         update((s) => ({ ...s, wallet: { ...s.wallet, balance: s.wallet.balance + 20000 }, transactions: [tx, ...s.transactions] }))
       },
 
       async approveMilestone(contractId, milestoneId) {
+        if (contractsApiEnabled) {
+          const c = demoWorkspace().contracts.find((x) => x.id === contractId)
+          const m = c?.milestones.find((x) => x.id === milestoneId)
+          if (!c || !m?.backendId || m.status !== 'under_review') throw new Error('This milestone is no longer awaiting review.')
+          const r = await approveMilestoneApi(m.backendId)
+          const tx: Transaction = { id: uid('TX'), type: 'release', amount: m.amount, status: 'confirmed', hash: r.transaction_hash, projectId: c.projectId, milestoneId, label: 'Milestone ' + m.seq + ' released', at: new Date().toISOString() }
+          update((s) => ({ ...s, transactions: [tx, ...s.transactions] }))
+          await Promise.all([syncContract(contractId), syncWallet()])
+          log('Released ' + formatSim(m.amount) + ' for Milestone ' + m.seq, 'success', c.projectId)
+          return tx
+        }
         await wait(2000)
         return navigator.locks.request('gigly-review:'+contractId+':'+milestoneId, () => {
           const state = demoWorkspace()
@@ -332,7 +462,17 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         })
       },
 
-      raiseDispute(contractId, milestoneId, reason) {
+      async raiseDispute(contractId, milestoneId, reason) {
+        if (contractsApiEnabled) {
+          const m = demoWorkspace().contracts.find((c) => c.id === contractId)?.milestones.find((x) => x.id === milestoneId)
+          if (!m?.backendId || m.status !== 'under_review') throw new Error('This milestone is no longer awaiting review.')
+          await raiseDisputeApi(m.backendId, reason)
+          patchMilestone(contractId, milestoneId, { disputeReason: reason })
+          await syncContract(contractId)
+          const c = demoWorkspace().contracts.find((x) => x.id === contractId)!
+          log(`Dispute raised on Milestone ${m.seq}; ${formatSim(m.amount)} frozen`, 'danger', c.projectId)
+          return
+        }
         if (demoWorkspace().contracts.find(c=>c.id===contractId)?.milestones.find(m=>m.id===milestoneId)?.status !== 'under_review') throw new Error('This milestone is no longer awaiting review.')
         patchMilestone(contractId, milestoneId, { status: 'disputed', disputeReason: reason })
         const c = stateRef.current.contracts.find((x) => x.id === contractId)!
@@ -348,7 +488,7 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         update(() => freshWorkspace()) // akun asli: kosong lagi; login demo: data contoh
       },
     }),
-    [log, patchContract, patchMilestone, patchProject, simulateSubmission, update],
+    [log, patchContract, patchMilestone, patchProject, simulateSubmission, syncContract, syncWallet, update],
   )
 
   const value = useMemo<Store>(() => {

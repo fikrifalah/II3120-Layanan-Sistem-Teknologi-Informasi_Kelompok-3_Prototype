@@ -10,6 +10,7 @@ import type { Contract, Project } from '../../types/domain'
 import { LinkButton } from '../../components/ui/Button'
 import { ContractStatusBadge, MilestoneStatusBadge, ProjectStatusBadge, SkillChip } from '../../components/ui/Badge'
 import { Breadcrumb, CardTitle, KeyValue, Progress, StatCard, Tabs } from '../../components/ui/Display'
+import { isSettled, paidAmount } from '../../services/clientContracts'
 import { AnonAvatar, PersonAvatar } from '../../components/ui/Identity'
 import { ProjectIcon } from '../../components/ProjectRow'
 import { CopyButton } from './FundEscrow'
@@ -180,8 +181,9 @@ export default function Workspace() {
   }
 
   const total = contract.milestones.reduce((n, m) => n + m.amount, 0)
-  const released = contract.milestones.filter((m) => m.status === 'released').reduce((n, m) => n + m.amount, 0)
-  const paidCount = contract.milestones.filter((m) => m.status === 'released').length
+  const released = contract.milestones.reduce((n, m) => n + paidAmount(m), 0)
+  const remaining = contract.milestones.filter((m) => !isSettled(m)).reduce((n, m) => n + m.amount, 0)
+  const paidCount = contract.milestones.filter(isSettled).length
   const activity = store.activity.filter((a) => a.projectId === projectId)
   const txs = store.transactions.filter((t) => t.projectId === projectId)
 
@@ -192,7 +194,7 @@ export default function Workspace() {
       <section aria-label="Funds" className="stagger mb-6 grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
         <StatCard icon={<Coins className="size-5" />} label="Contract value" value={formatSim(total)} />
         <StatCard icon={<Unlock className="size-5" />} label="Released" value={formatSim(released)} tone="success" />
-        <StatCard icon={<Lock className="size-5" />} label="Remaining in escrow" value={formatSim(total - released)} tone="accent" />
+        <StatCard icon={<Lock className="size-5" />} label="Remaining in escrow" value={formatSim(remaining)} tone="accent" />
         <div className="card p-4">
           <p className="text-small text-ink-muted">Milestones paid</p>
           <p className="tabular text-h2">

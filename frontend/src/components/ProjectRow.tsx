@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, BarChart3, Code2, Globe, Layout, Server, Smartphone } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useStore } from '../services/store'
+import { isSettled } from '../services/clientContracts'
 import type { Project } from '../types/domain'
 import { formatDate, formatIdr } from '../lib/format'
 import { nextAction } from '../lib/nextAction'
@@ -30,7 +31,7 @@ export function ProjectRow({ project }: { project: Project }) {
   const contract = store.getContract(project.contractId)
   const action = nextAction(project, store.contracts, store.invitations)
   const ms = contract?.milestones ?? []
-  const paid = ms.filter((m) => m.status === 'released').length
+  const paid = ms.filter(isSettled).length
   const pct = project.status === 'completed' ? 100 : ms.length ? (paid / ms.length) * 100 + (ms.some((m) => m.status === 'under_review') ? 100 / ms.length / 2 : 0) : 0
   const hired = project.hiredCandidateId ? store.getCandidate(project.id, project.hiredCandidateId) : undefined
   const revealed = hired && store.isRevealed(project.id, hired.id)
