@@ -1,9 +1,11 @@
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List
 
 from dotenv import load_dotenv
+from eth_account import Account
 from web3 import Web3
 
 load_dotenv()
@@ -73,7 +75,10 @@ def _send_signed_tx(w3: Web3, contract_fn, private_key_env: str = "ARBITER_PRIVA
     private_key = os.getenv(private_key_env)
     if not private_key:
         raise ValueError(f"{private_key_env} is not set in environment")
+    return _send_tx_with_key(w3, contract_fn, private_key)
 
+
+def _send_tx_with_key(w3: Web3, contract_fn, private_key) -> tuple[str, Any]:
     account = w3.eth.account.from_key(private_key)
     nonce = w3.eth.get_transaction_count(account.address)
 
@@ -92,7 +97,53 @@ def _send_signed_tx(w3: Web3, contract_fn, private_key_env: str = "ARBITER_PRIVA
     raw_tx = getattr(signed_tx, "raw_transaction", None) or signed_tx.rawTransaction
     tx_hash = w3.eth.send_raw_transaction(raw_tx)
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-    return tx_hash.hex(), receipt
+    return Web3.to_hex(tx_hash), receipt
+
+
+# Mnemonic bawaan Hardhat: 20 akun test di jaringan lokal (chainId 31337).
+HARDHAT_MNEMONIC = "test test test test test test test test test test test junk"
+
+
+@lru_cache(maxsize=1)
+def _dev_wallet_keys() -> Dict[str, bytes]:
+    Account.enable_unaudited_hdwallet_features()
+    mnemonic = os.getenv("DEV_WALLET_MNEMONIC") or HARDHAT_MNEMONIC
+    accounts = (Account.from_mnemonic(mnemonic, account_path=f"m/44'/60'/0'/0/{i}") for i in range(20))
+    return {a.address.lower(): a.key for a in accounts}
+
+
+def dev_private_key_for(address: str) -> bytes:
+    """PROTOTYPE SAJA: private key akun dev Hardhat untuk `address`.
+
+    Frontend belum punya wallet (MetaMask), jadi backend menandatangani transaksi atas nama
+    client/freelancer memakai akun test Hardhat. Jangan dipakai di jaringan sungguhan.
+    """
+    key = _dev_wallet_keys().get(address.lower())
+    if key is None:
+        raise ValueError(f"Wallet {address} bukan akun dev Hardhat; private key tidak tersedia.")
+    return key
+
+
+def arbiter_address() -> str:
+    """Alamat wallet dari ARBITER_PRIVATE_KEY (penanda tangan putusan arbiter)."""
+    private_key = os.getenv("ARBITER_PRIVATE_KEY")
+    if not private_key:
+        raise ValueError("ARBITER_PRIVATE_KEY is not set in environment")
+    return Account.from_key(private_key).address
+
+
+def raise_dispute_onchain(contract_id: int, milestone_index: int, signer_private_key) -> Dict[str, Any]:
+    """Bekukan milestone (status DISPUTED). Penanda tangan wajib client atau freelancer milestone tsb."""
+    w3 = get_web3()
+    escrow = get_escrow_contract(w3)
+    fn = escrow.functions.raiseDispute(int(contract_id), int(milestone_index))
+    tx_hash, receipt = _send_tx_with_key(w3, fn, signer_private_key)
+    return {
+        "tx_hash": tx_hash,
+        "status": receipt["status"],
+        "contract_id": contract_id,
+        "milestone_index": milestone_index,
+    }
 
 
 def get_contract(contract_id: int) -> Dict[str, Any]:
