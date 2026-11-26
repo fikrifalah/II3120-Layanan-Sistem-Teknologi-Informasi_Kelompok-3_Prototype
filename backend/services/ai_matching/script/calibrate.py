@@ -1,6 +1,6 @@
-"""Kalibrasi SIM_FLOOR / SIM_CEIL (scoring.py) dari sebaran cosine data seed.
+"""Kalibrasi SIM_FLOOR / SIM_CEIL (scoring.py) dari data seed di DATABASE_URL.
 
-Jalankan dari root proyek (butuh data S3 di app.db):
+Jalankan dari root proyek (butuh data seed di PostgreSQL):
     backend/.venv/Scripts/python backend/services/ai_matching/script/calibrate.py
 
 Cara kerja:

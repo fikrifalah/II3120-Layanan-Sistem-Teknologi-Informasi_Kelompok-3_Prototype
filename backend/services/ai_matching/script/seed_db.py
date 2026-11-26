@@ -1,4 +1,4 @@
-"""Memasukkan data seed ke database (backend/app.db).
+"""Memasukkan data seed ke database yang dikonfigurasi lewat DATABASE_URL.
 
 Jalankan dari root proyek:
     backend/.venv/Scripts/python backend/services/ai_matching/script/seed_db.py
@@ -15,14 +15,12 @@ jadi kalau terputus cukup jalankan ulang.
 """
 import argparse
 import json
-import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 BACKEND_DIR = SCRIPT_DIR.parents[2]
-os.chdir(BACKEND_DIR)  # DATABASE_URL "sqlite:///./app.db" relatif terhadap folder backend
 sys.path.insert(0, str(BACKEND_DIR))
 
 from sqlmodel import Session, func, select  # noqa: E402

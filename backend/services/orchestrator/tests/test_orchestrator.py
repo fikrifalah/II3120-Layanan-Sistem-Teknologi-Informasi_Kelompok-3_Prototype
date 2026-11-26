@@ -1,4 +1,4 @@
-"""Tes alur orchestrator dengan SQLite in-memory dan blockchain palsu (tanpa node Hardhat)."""
+"""Tes alur orchestrator dengan PostgreSQL terisolasi dan blockchain palsu (tanpa node Hardhat)."""
 import hashlib
 import json
 import time
@@ -6,8 +6,7 @@ import time
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel
 
 import models  # noqa: F401
 from database import get_db
@@ -69,8 +68,8 @@ class FakeChain:
 
 
 @pytest.fixture
-def env(tmp_path, monkeypatch):
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+def env(tmp_path, monkeypatch, postgres_engine):
+    engine = postgres_engine
     SQLModel.metadata.create_all(engine)
     fake = FakeChain()
     monkeypatch.setattr(orchestrator, "UPLOADS_DIR", tmp_path)

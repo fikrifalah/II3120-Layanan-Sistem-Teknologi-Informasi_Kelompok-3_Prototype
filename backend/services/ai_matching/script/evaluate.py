@@ -1,11 +1,11 @@
 """Evaluasi AI Matching: akurasi (Precision@5, NDCG@5), konsistensi, dan pembanding.
 
-Jalankan dari root proyek (butuh data S3 di app.db):
+Jalankan dari root proyek (butuh data seed S3 di database pada DATABASE_URL):
     backend/.venv/Scripts/python backend/services/ai_matching/script/evaluate.py
     backend/.venv/Scripts/python backend/services/ai_matching/script/evaluate.py --runs 1   # tanpa uji konsistensi
 
 - 20 job EVALUASI (berbeda dari 20 job kalibrasi di calibrate.py, agar tidak "menyontek").
-- Dijalankan di SALINAN sementara app.db -> app.db asli (job, match_alias) tidak berubah.
+- Dijalankan pada schema PostgreSQL sementara dari DATABASE_URL; database sumber tidak berubah.
 - Kunci jawaban dari seed_truth. Relevansi kandidat terhadap job:
       2 = kategori sama & domain sama, 1 = kategori sama, 0 = kategori beda.
 - Budget job dibuat longgar agar yang diuji adalah RANKING, bukan filter budget.
@@ -16,23 +16,27 @@ Jalankan dari root proyek (butuh data S3 di app.db):
       hybrid    : service.recommend() lengkap (sistem kita)
 """
 import argparse
+from contextlib import contextmanager
 import math
 import os
 import re
-import shutil
 import statistics
 import sys
-import tempfile
+import uuid
 from pathlib import Path
+from typing import Iterator
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 BACKEND_DIR = SCRIPT_DIR.parents[2]
 os.chdir(BACKEND_DIR)
 sys.path.insert(0, str(BACKEND_DIR))
 
-from sqlalchemy import create_engine  # noqa: E402
-from sqlmodel import Session, select  # noqa: E402
+from sqlalchemy import create_engine, func, inspect, select, text  # noqa: E402
+from sqlalchemy.engine import Engine  # noqa: E402
+from sqlmodel import Session, SQLModel, select  # noqa: E402
 
+import main  # noqa: F401, E402  (mendaftarkan seluruh model untuk snapshot evaluasi)
+from database import engine as source_engine, init_db  # noqa: E402
 from models import Job  # noqa: E402
 from services.ai_matching.db_models import CvChunk, FreelancerProfile, SeedTruth  # noqa: E402
 from services.ai_matching.embeddings import EmbeddingClient  # noqa: E402
@@ -44,6 +48,64 @@ from services.ai_matching.service import recommend  # noqa: E402
 K = 5
 EVAL_BUDGET = 50_000_000  # longgar: semua freelancer lolos filter budget
 CLIENT_ID = 1
+
+
+def snapshot_database(source: Engine, destination: Engine) -> None:
+    SQLModel.metadata.create_all(destination)
+    source_tables = set(inspect(source).get_table_names())
+    missing = [table.name for table in SQLModel.metadata.sorted_tables if table.name not in source_tables]
+    if missing:
+        raise RuntimeError(
+            "Database belum memiliki tabel untuk evaluasi: "
+            + ", ".join(missing)
+            + ". Jalankan migrasi Alembic terlebih dahulu."
+        )
+
+    with source.connect() as source_connection, destination.begin() as destination_connection:
+        for table in SQLModel.metadata.sorted_tables:
+            rows = source_connection.execute(table.select()).mappings().all()
+            if rows:
+                destination_connection.execute(table.insert(), [dict(row) for row in rows])
+            primary_key = list(table.primary_key.columns)
+            if len(primary_key) == 1:
+                column = primary_key[0]
+                sequence = destination_connection.execute(
+                    text("SELECT pg_get_serial_sequence(:table_name, :column_name)"),
+                    {"table_name": table.name, "column_name": column.name},
+                ).scalar_one_or_none()
+                if sequence:
+                    maximum = destination_connection.execute(select(func.max(column))).scalar_one()
+                    if maximum is not None:
+                        destination_connection.execute(
+                            text("SELECT setval(CAST(:sequence AS regclass), :value, true)"),
+                            {"sequence": sequence, "value": maximum},
+                        )
+
+
+@contextmanager
+def temporary_snapshot_engine(source: Engine) -> Iterator[Engine]:
+    if source.dialect.name != "postgresql":
+        raise ValueError("AI evaluation snapshots require PostgreSQL")
+
+    schema = f"evaluation_{uuid.uuid4().hex}"
+    with source.begin() as connection:
+        connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+
+    destination = None
+    try:
+        destination = create_engine(
+            source.url,
+            connect_args={"options": f"-csearch_path={schema}"},
+            pool_pre_ping=True,
+        )
+        snapshot_database(source, destination)
+        yield destination
+    finally:
+        if destination is not None:
+            destination.dispose()
+        with source.begin() as connection:
+            connection.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
+
 
 # (kategori, domain, judul, deskripsi) - ditulis seperti client sungguhan, sebagian tanpa istilah teknis.
 EVAL_JOBS = [
@@ -114,18 +176,8 @@ def rank(scores: dict[int, float], k: int = K) -> list[int]:
     return [fid for fid, _ in sorted(scores.items(), key=lambda x: (-x[1], x[0]))[:k]]
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--runs", type=int, default=3, help="berapa kali hybrid diulang (uji konsistensi)")
-    args = parser.parse_args()
-
-    tmp_dir = Path(tempfile.mkdtemp())
-    tmp_db = tmp_dir / "eval.db"
-    shutil.copy(BACKEND_DIR / "app.db", tmp_db)
-    engine = create_engine(f"sqlite:///{tmp_db}")
-    llm, emb = LLMClient(), EmbeddingClient()
-
-    with Session(engine) as session:
+def run_evaluation(evaluation_engine: Engine, runs: int, llm: LLMClient, emb: EmbeddingClient) -> None:
+    with Session(evaluation_engine) as session:
         truth = {t.freelancer_id: t for t in session.exec(select(SeedTruth))}
         cv_tokens = {p.freelancer_id: tokens(p.cv_text) for p in session.exec(select(FreelancerProfile))}
         cv_skills = {p.freelancer_id: p.skills for p in session.exec(select(FreelancerProfile))}
@@ -148,9 +200,9 @@ def main() -> None:
             rel = {fid: relevance(t, cat, domain) for fid, t in truth.items()}
             all_rels = list(rel.values())
 
-            runs = [recommend(session, job_id, top_k=K, with_reasons=False, llm=llm, emb=emb)
-                    for _ in range(args.runs)]
-            tops = [[c.freelancer_id for c in r.candidates] for r in runs]
+            results = [recommend(session, job_id, top_k=K, with_reasons=False, llm=llm, emb=emb)
+                       for _ in range(runs)]
+            tops = [[c.freelancer_id for c in r.candidates] for r in results]
             identical += all(t == tops[0] for t in tops)
             overlaps += [len(set(tops[0]) & set(t)) / K for t in tops[1:]]
 
@@ -158,7 +210,7 @@ def main() -> None:
             ev = best_evidence(qvec, chunks)
             rankings = {
                 "keyword": rank({f: len(job_tokens & cv_tokens[f]) / max(len(job_tokens), 1) for f in truth}),
-                "skill": rank({f: skill_score(runs[0].job_skills, [], cv_skills[f])[0] or 0.0 for f in truth}),
+                "skill": rank({f: skill_score(results[0].job_skills, [], cv_skills[f])[0] or 0.0 for f in truth}),
                 "embedding": rank({f: statistics.mean(e.similarity for e in ev.get(f, {}).values())
                                    if ev.get(f) else 0.0 for f in truth}),
                 "hybrid": tops[0],
@@ -171,18 +223,27 @@ def main() -> None:
                 line.append(f"{methods[m]['p'][-1]:.1f}")
             cats = ",".join(truth[f].category[:4] for f in tops[0])
             print(f"{cat + ' | ' + title:38.38s} {line[0]:>4s} {line[1]:>5s} {line[2]:>4s} {line[3]:>4s}  {cats}"
-                  f"   skill job={runs[0].job_skills}")
+                  f"   skill job={results[0].job_skills}")
 
     print("\n== RINGKASAN (rata-rata 20 job)")
     print(f"{'metode':10s} {'Precision@5':>12s} {'NDCG@5':>8s}")
     for m, v in methods.items():
         print(f"{m:10s} {statistics.mean(v['p']):12.2f} {statistics.mean(v['ndcg']):8.2f}")
-    if args.runs > 1:
-        print(f"\n== KONSISTENSI hybrid ({args.runs}x per job)")
+    if runs > 1:
+        print(f"\n== KONSISTENSI hybrid ({runs}x per job)")
         print(f"top-5 identik (urutan sama): {identical}/{len(EVAL_JOBS)} job")
         print(f"rata-rata irisan top-5 antar run: {statistics.mean(overlaps):.0%}")
-    engine.dispose()
-    shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--runs", type=int, default=3, help="berapa kali hybrid diulang (uji konsistensi)")
+    args = parser.parse_args()
+
+    init_db()
+    llm, emb = LLMClient(), EmbeddingClient()
+    with temporary_snapshot_engine(source_engine) as evaluation_engine:
+        run_evaluation(evaluation_engine, args.runs, llm, emb)
 
 
 if __name__ == "__main__":

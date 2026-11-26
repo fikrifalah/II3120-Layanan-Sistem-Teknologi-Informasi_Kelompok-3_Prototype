@@ -23,28 +23,28 @@ project-root/
 │   │   └── deploy.js                    # Local Hardhat deployment script
 │   └── test/
 │       └── Escrow.test.js               # Hardhat/Chai unit & integration test suite
-├── backend/                             # FastAPI + SQLModel + SQLite + Alembic + web3.py
+├── backend/                             # FastAPI + SQLModel + PostgreSQL + Alembic + web3.py
 │   ├── .env.example                     # Backend environment variable template
 │   ├── main.py                          # FastAPI app: routers, /uploads mount, auto-release background task
-│   ├── database.py                      # SQLite engine, get_db(), init_db() = run Alembic migrations
-│   ├── models.py                        # Shared tables (User, Job, Contract, Milestone, Escrow, Dispute)
+│   ├── database.py                      # PostgreSQL engine, get_db(), init_db() = run Alembic migrations
+│   ├── models.py                        # Shared tables, including Contract, Dispute, and DisputeEvidence metadata
 │   ├── alembic.ini                      # Alembic config (see "Database Migrations")
-│   ├── migrations/versions/             # One file per schema change, applied automatically on startup
+│   ├── migrations/versions/             # Alembic revisions, applied automatically on startup
 │   ├── requirements.txt
-│   ├── tests/test_migrations.py         # Fresh DB, legacy app.db upgrade, models vs migrations in sync
+│   ├── tests/test_migrations.py         # PostgreSQL migrations and models vs migrations in sync
 │   ├── uploads/                         # Local off-chain storage for deliverables & dispute evidence
 │   └── services/
 │       ├── auth/router.py               # Login & bearer tokens (/api/v1/auth)
 │       ├── invitations/router.py        # Client invites, freelancer accepts (/api/v1/invitations)
 │       ├── ai_matching/                 # AIMatchingProvider: anonymized matching (/api/v1/matching), freelancer profile (/api/v1/freelancer)
 │       │   ├── docs/                    # Matching design & context
-│       │   └── script/seed_db.py        # Seeds clients & freelancers into app.db
+│       │   └── script/seed_db.py        # Seeds clients & freelancers into PostgreSQL
 │       ├── smart_contract/service.py    # SmartContractProvider: web3.py bridge, custodial dev wallets, faucet
 │       ├── orchestrator/                # PlatformOrchestrator (/api/v1/contracts, /escrow, /milestones, /projects, /files, /wallet)
 │       │   ├── router.py
 │       │   ├── workflow.py              # Shared milestone state transitions & activity log
 │       │   └── auto_release.py          # Releases milestones after the 5-day review timeout
-│       └── dispute_handler/             # DisputeResolutionContract (/api/v1/disputes, /verdict)
+│       └── dispute_handler/             # DisputeResolutionContract (/api/v1/disputes, /evidence, /verdict)
 │           ├── service.py
 │           └── seed_arbiter.py          # Creates the arbiter account
 └── frontend/                            # Vite + React + TypeScript + Tailwind CSS
@@ -86,7 +86,16 @@ npm --prefix blockchain install
 npm --prefix frontend install
 ```
 
-#### B. Initialize Python Virtual Environment & Backend Packages
+#### B. Create the PostgreSQL Database
+Install PostgreSQL, then create the local development role and database (or configure `DATABASE_URL` for an existing database):
+```powershell
+psql -U postgres -c "CREATE USER gigly WITH PASSWORD 'gigly';"
+psql -U postgres -c "CREATE DATABASE gigly OWNER gigly;"
+psql -U postgres -c "CREATE DATABASE gigly_test OWNER gigly;"
+```
+The connection string in `backend/.env.example` uses these local development credentials. Replace them for your own PostgreSQL setup.
+
+#### C. Initialize Python Virtual Environment & Backend Packages
 ```powershell
 cd backend
 python -m venv .venv
@@ -100,7 +109,7 @@ deactivate
 cd ..
 ```
 
-#### C. Create Local Environment Files (`.env`)
+#### D. Create Local Environment Files (`.env`)
 ```powershell
 # Windows PowerShell:
 Copy-Item backend/.env.example backend/.env
@@ -109,15 +118,15 @@ Copy-Item frontend/.env.example frontend/.env
 # cp backend/.env.example backend/.env && cp frontend/.env.example frontend/.env
 ```
 
-#### D. Compile Smart Contracts (Generates ABIs for Backend)
+#### E. Compile Smart Contracts (Generates ABIs for Backend)
 ```powershell
 cd blockchain
 npx hardhat compile
 cd ..
 ```
 
-#### E. Seed Demo Data (Optional, Once)
-The database (`backend/app.db`) is created and migrated automatically when the backend starts. To fill it with demo accounts:
+#### F. Seed Demo Data (Optional, Once)
+The PostgreSQL schema is created and migrated automatically when the backend starts. To fill it with demo accounts:
 ```powershell
 backend/.venv/Scripts/python backend/services/ai_matching/script/seed_db.py   # clients & freelancers (needs LLM_API_KEY)
 cd backend
@@ -151,7 +160,7 @@ npm run deploy
 #### Step 3 — Verify `backend/.env`
 Ensure `backend/.env` contains the addresses printed by `npm run deploy` and Hardhat's local test keys (no quotes, no spaces around `=`):
 ```ini
-DATABASE_URL=sqlite:///./app.db
+DATABASE_URL=postgresql+psycopg://gigly:gigly@localhost:5432/gigly
 LLM_BASE_URL=https://openrouter.ai/api/v1
 LLM_API_KEY=your_llm_api_key_here
 LLM_MODEL=llama-3.3-70b-versatile
@@ -176,15 +185,25 @@ AUTO_RELEASE_INTERVAL_SECONDS=60
 
 ---
 
-### Database Migrations (Alembic)
-The backend upgrades `backend/app.db` automatically on startup, so after `git pull` just run `npm run dev`. Existing data is kept.
+### Database & Migrations (PostgreSQL + Alembic)
+The backend uses PostgreSQL through `DATABASE_URL` (see `backend/.env.example`). On every startup, `database.init_db()` runs `alembic upgrade head` against that database. After pulling a schema revision, restart the backend (for example with `npm run dev`) and Alembic applies any unapplied revisions; it records the current revision in `alembic_version`, so already-applied migrations are not repeated.
+
+The schema stores application data off-chain, including user and freelancer profiles, jobs, contracts, milestones, disputes, and dispute-evidence metadata. Evidence files are stored off-chain under `backend/uploads/`; PostgreSQL stores their filename, uploader, size, SHA-256 digest, and upload time. The escrow smart contract stores only the data needed to execute settlement, including the agreed contract hash and on-chain payment state. An arbiter reviews the off-chain case evidence and issues a `RELEASE`, `REFUND`, or `SPLIT` verdict through the dispute API.
+
+Migration `0002_contract_escrow_dispute.py` already creates the contract, dispute, and dispute-evidence tables for a fresh database. Runtime services, tests, and AI evaluation use PostgreSQL. Tests require a separate `TEST_DATABASE_URL`; each test creates and removes a unique temporary schema so the configured test database's public schema is untouched. Set it in `backend/.env`, or in PowerShell before running tests:
+```powershell
+$env:TEST_DATABASE_URL="postgresql+psycopg://gigly:gigly@localhost:5432/gigly_test"
+cd backend
+.venv/Scripts/python -m pytest
+```
+Changing `DATABASE_URL` to another PostgreSQL database does not transfer rows; export/import data separately if it must be retained. Existing local database files are not automatically migrated or deleted.
 
 When you change a table (`backend/models.py` or a module's `SQLModel` table), create a migration and commit it together with the model change:
 ```powershell
 cd backend
 alembic revision --autogenerate -m "short description"   # writes backend/migrations/versions/<rev>_<slug>.py
 ```
-Review the generated file, then restart the backend to apply it. `alembic current` shows the database version; `python -m pytest tests/test_migrations.py` fails if models and migrations are out of sync.
+Review the generated file before committing it; autogenerate can need manual edits. Restart the backend to apply the revision, or run `alembic upgrade head` manually. `alembic current` shows the database version. Run `python -m pytest tests/test_migrations.py` with `TEST_DATABASE_URL` set to verify that a fresh schema and the SQLModel definitions remain in sync.
 
 ---
 

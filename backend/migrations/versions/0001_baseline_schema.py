@@ -1,8 +1,8 @@
-"""Skema awal: semua tabel sebelum PR #6 (sama dengan app.db yang dibuat create_all).
+"""Skema awal: semua tabel sebelum PR #6 (sama dengan schema create_all sebelumnya).
 
 Hanya membuat tabel yang BELUM ada, sehingga:
 - database baru dibuat lengkap;
-- app.db lama (dibuat create_all sebelum Alembic dipasang) tidak diubah dan datanya aman.
+- schema lama (dibuat create_all sebelum Alembic dipasang) tidak diubah dan datanya aman.
 
 Revision ID: 0001
 Revises:
@@ -33,8 +33,7 @@ def upgrade() -> None:
         sa.Column('skills', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.PrimaryKeyConstraint('id')
         )
-        with op.batch_alter_table('user', schema=None) as batch_op:
-            batch_op.create_index(batch_op.f('ix_user_email'), ['email'], unique=True)
+        op.create_index(op.f('ix_user_email'), 'user', ['email'], unique=True)
 
     if 'auth_token' not in existing:
         op.create_table('auth_token',
@@ -44,8 +43,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
         sa.PrimaryKeyConstraint('token')
         )
-        with op.batch_alter_table('auth_token', schema=None) as batch_op:
-            batch_op.create_index(batch_op.f('ix_auth_token_user_id'), ['user_id'], unique=False)
+        op.create_index(op.f('ix_auth_token_user_id'), 'auth_token', ['user_id'], unique=False)
 
     if 'client_profile' not in existing:
         op.create_table('client_profile',
@@ -68,8 +66,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['freelancer_id'], ['user.id'], ),
         sa.PrimaryKeyConstraint('id')
         )
-        with op.batch_alter_table('cv_chunk', schema=None) as batch_op:
-            batch_op.create_index(batch_op.f('ix_cv_chunk_freelancer_id'), ['freelancer_id'], unique=False)
+        op.create_index(op.f('ix_cv_chunk_freelancer_id'), 'cv_chunk', ['freelancer_id'], unique=False)
 
     if 'freelancer_profile' not in existing:
         op.create_table('freelancer_profile',
@@ -136,9 +133,8 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['job_id'], ['job.id'], ),
         sa.PrimaryKeyConstraint('id')
         )
-        with op.batch_alter_table('invitation', schema=None) as batch_op:
-            batch_op.create_index(batch_op.f('ix_invitation_freelancer_id'), ['freelancer_id'], unique=False)
-            batch_op.create_index(batch_op.f('ix_invitation_job_id'), ['job_id'], unique=False)
+        op.create_index(op.f('ix_invitation_freelancer_id'), 'invitation', ['freelancer_id'], unique=False)
+        op.create_index(op.f('ix_invitation_job_id'), 'invitation', ['job_id'], unique=False)
 
     if 'job_requirement' not in existing:
         op.create_table('job_requirement',
@@ -164,8 +160,7 @@ def upgrade() -> None:
         sa.UniqueConstraint('job_id', 'alias'),
         sa.UniqueConstraint('job_id', 'freelancer_id')
         )
-        with op.batch_alter_table('match_alias', schema=None) as batch_op:
-            batch_op.create_index(batch_op.f('ix_match_alias_job_id'), ['job_id'], unique=False)
+        op.create_index(op.f('ix_match_alias_job_id'), 'match_alias', ['job_id'], unique=False)
 
     if 'escrow' not in existing:
         op.create_table('escrow',
@@ -211,30 +206,25 @@ def downgrade() -> None:
     op.drop_table('dispute')
     op.drop_table('milestone')
     op.drop_table('escrow')
-    with op.batch_alter_table('match_alias', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_match_alias_job_id'))
+    op.drop_index(op.f('ix_match_alias_job_id'), table_name='match_alias')
 
     op.drop_table('match_alias')
     op.drop_table('job_requirement')
-    with op.batch_alter_table('invitation', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_invitation_job_id'))
-        batch_op.drop_index(batch_op.f('ix_invitation_freelancer_id'))
+    op.drop_index(op.f('ix_invitation_job_id'), table_name='invitation')
+    op.drop_index(op.f('ix_invitation_freelancer_id'), table_name='invitation')
 
     op.drop_table('invitation')
     op.drop_table('contract')
     op.drop_table('seed_truth')
     op.drop_table('job')
     op.drop_table('freelancer_profile')
-    with op.batch_alter_table('cv_chunk', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_cv_chunk_freelancer_id'))
+    op.drop_index(op.f('ix_cv_chunk_freelancer_id'), table_name='cv_chunk')
 
     op.drop_table('cv_chunk')
     op.drop_table('client_profile')
-    with op.batch_alter_table('auth_token', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_auth_token_user_id'))
+    op.drop_index(op.f('ix_auth_token_user_id'), table_name='auth_token')
 
     op.drop_table('auth_token')
-    with op.batch_alter_table('user', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_user_email'))
+    op.drop_index(op.f('ix_user_email'), table_name='user')
 
     op.drop_table('user')

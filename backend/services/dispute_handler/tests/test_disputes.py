@@ -1,12 +1,11 @@
-"""Tes endpoint sengketa dengan SQLite in-memory dan blockchain palsu (tanpa node Hardhat)."""
+"""Tes endpoint sengketa dengan PostgreSQL terisolasi dan blockchain palsu (tanpa node Hardhat)."""
 import hashlib
 import time
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel
 from web3.exceptions import ContractLogicError
 
 import models  # noqa: F401
@@ -45,8 +44,8 @@ class FakeChain:
 
 
 @pytest.fixture
-def env(tmp_path, monkeypatch):
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+def env(tmp_path, monkeypatch, postgres_engine):
+    engine = postgres_engine
     SQLModel.metadata.create_all(engine)
     fake = FakeChain()
     monkeypatch.setattr(service, "UPLOADS_DIR", tmp_path)
