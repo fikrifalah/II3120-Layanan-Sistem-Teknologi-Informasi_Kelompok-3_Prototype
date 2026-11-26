@@ -24,33 +24,47 @@ class Job(SQLModel, table=True):
 
 class Contract(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    job_id: int = Field(foreign_key="job.id")
+    job_id: int = Field(foreign_key="job.id", index=True)
     client_id: int = Field(foreign_key="user.id")
-    freelancer_id: int = Field(foreign_key="user.id")
-    onchain_contract_address: Optional[str] = None
+    freelancer_id: int = Field(foreign_key="user.id", index=True)
+    onchain_contract_address: Optional[str] = None  # alamat Escrow.sol
     # contractId di Escrow.sol (hasil createAndLockEscrow); None = escrow belum dikunci.
-    # Milestone ke-i on-chain = milestone kontrak ini urutan ke-i menurut id.
     onchain_contract_id: Optional[int] = None
-    total_amount: float
-    status: str = "draft"
+    total_amount: float  # SIM-IDR
+    status: str = "draft"  # draft | active | completed | cancelled
+    scope: str = ""
+    start_at: Optional[datetime] = None
+    end_at: Optional[datetime] = None
+    # Dokumen kesepakatan off-chain (JSON kanonik) dan SHA-256-nya; hanya hash yang disimpan on-chain.
+    terms_json: str = ""
+    contract_hash: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class Milestone(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    contract_id: int = Field(foreign_key="contract.id")
+    contract_id: int = Field(foreign_key="contract.id", index=True)
+    sequence: int = 1  # 1, 2, 3, ...; milestone on-chain index = sequence - 1
     title: str
-    amount: float
+    description: str = ""
+    amount: float  # SIM-IDR
+    due_at: Optional[datetime] = None
     deliverable_url: Optional[str] = None
     deliverable_hash: Optional[str] = None
+    # pending | in_progress | under_review | disputed | released | refunded | split
     status: str = "pending"
+    submitted_at: Optional[datetime] = None
+    settled_at: Optional[datetime] = None
 
 
 class Escrow(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    contract_id: int = Field(foreign_key="contract.id")
+    contract_id: int = Field(foreign_key="contract.id", index=True)
     tx_hash: Optional[str] = None
     locked_amount: float = 0.0
-    status: str = "locked"
+    status: str = "active"  # active | closed
+    funded_at: Optional[datetime] = None
+    close_tx_hash: Optional[str] = None
 
 
 class Dispute(SQLModel, table=True):

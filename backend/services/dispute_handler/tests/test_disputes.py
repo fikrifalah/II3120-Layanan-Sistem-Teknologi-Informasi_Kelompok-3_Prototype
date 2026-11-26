@@ -27,13 +27,14 @@ class FakeChain:
         self.statuses = ["SUBMITTED", "LOCKED"]
         self.amounts = [6000 * WEI, 9000 * WEI]
         self.calls = []
+        self.wallets = {}
 
     def get_contract(self, contract_id):
         return {"client": CLIENT_WALLET, "arbiter": ARBITER_WALLET, "milestones": [
             {"amount": a, "freelancer": FREELANCER_WALLET, "status": s} for a, s in zip(self.amounts, self.statuses)]}
 
-    def raise_dispute_onchain(self, contract_id, index, key):
-        self.calls.append(("raise", contract_id, index, key))
+    def raise_dispute_onchain(self, user_id, contract_id, index):
+        self.calls.append(("raise", contract_id, index, self.wallets[user_id]))
         self.statuses[index] = "DISPUTED"
         return {"tx_hash": "0xraise", "status": 1}
 
@@ -52,7 +53,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(chain, "get_contract", fake.get_contract)
     monkeypatch.setattr(chain, "raise_dispute_onchain", fake.raise_dispute_onchain)
     monkeypatch.setattr(chain, "execute_arbiter_verdict_onchain", fake.execute_arbiter_verdict_onchain)
-    monkeypatch.setattr(chain, "dev_private_key_for", lambda addr: "key-" + addr)
+    monkeypatch.setattr(chain, "user_address", lambda uid: fake.wallets.get(uid, "0x" + "00" * 20))
     monkeypatch.setattr(chain, "arbiter_address", lambda: ARBITER_WALLET)
 
     with Session(engine) as s:
@@ -68,12 +69,13 @@ def env(tmp_path, monkeypatch):
                             total_amount=15000, status="active", onchain_contract_id=1)
         s.add(contract)
         s.flush()
-        ms = [Milestone(contract_id=contract.id, title=t, amount=a, status="submitted")
-              for t, a in [("Desain API", 6000), ("Deployment", 9000)]]
+        ms = [Milestone(contract_id=contract.id, sequence=i, title=t, amount=a, status=st)
+              for i, (t, a, st) in enumerate([("Desain API", 6000, "under_review"), ("Deployment", 9000, "pending")], 1)]
         s.add_all(ms)
         for name, u in users.items():
             s.add(AuthToken(token=name, user_id=u.id, expires_at=time.time() + 3600))
         s.commit()
+        fake.wallets.update({users["client"].id: CLIENT_WALLET, users["freelancer"].id: FREELANCER_WALLET})
         ids = {"contract": contract.id, "m1": ms[0].id, "m2": ms[1].id, **{n: u.id for n, u in users.items()}}
 
     def db():
@@ -110,12 +112,12 @@ def test_client_raises_dispute_with_hashed_evidence(env):
     assert ev["filename"] == "erd.png"
     assert ev["sha256"] == hashlib.sha256(content).hexdigest()
     assert (env["uploads"] / "disputes" / ev["url"].rsplit("/", 1)[1]).read_bytes() == content
-    assert env["fake"].calls == [("raise", 1, 0, "key-" + CLIENT_WALLET)]
+    assert env["fake"].calls == [("raise", 1, 0, CLIENT_WALLET)]
 
 
 def test_freelancer_raise_is_signed_with_freelancer_wallet(env):
     assert _raise(env, who="freelancer", milestone="m2").status_code == 201
-    assert env["fake"].calls == [("raise", 1, 1, "key-" + FREELANCER_WALLET)]
+    assert env["fake"].calls == [("raise", 1, 1, FREELANCER_WALLET)]
 
 
 def test_raise_rejections(env):
@@ -155,12 +157,14 @@ def test_split_verdict_pays_out_and_closes_dispute(env):
     assert r.status_code == 200, r.text
     d = r.json()["data"]
     assert d["status"] == "resolved"
-    assert d["milestone"]["status"] == "split_settled"
+    assert d["milestone"]["status"] == "split"
     assert d["verdict"] | {"resolved_at": None} == {
         "action": "SPLIT", "freelancer_share_percentage": 70, "client_refund_percentage": 30,
         "reasoning": "Dokumentasi kurang", "freelancer_payout": 4200.0, "client_refund": 1800.0,
         "transaction_hash": "0xverdict", "resolved_at": None}
     assert env["fake"].calls[-1] == ("verdict", 1, 0, "SPLIT", 70)
+    with Session(env["engine"]) as s:  # alur kembali ke milestone berikutnya
+        assert s.get(Milestone, env["ids"]["m2"]).status == "in_progress"
     assert env["call"]("POST", f"/{dispute_id}/verdict", "arbiter", json=body).status_code == 409
     files = [("evidence", ("late.txt", b"x", "text/plain"))]
     assert env["call"]("POST", f"/{dispute_id}/evidence", "freelancer", files=files).status_code == 409

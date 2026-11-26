@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -11,6 +12,8 @@ from services.ai_matching.router import router as ai_matching_router
 from services.auth.router import router as auth_router
 from services.dispute_handler.service import router as disputes_router
 from services.invitations.router import router as invitations_router
+from services.orchestrator.auto_release import run_forever as auto_release_loop
+from services.orchestrator.router import router as orchestrator_router
 
 
 UPLOADS_DIR = Path(__file__).resolve().parent / "uploads"
@@ -20,7 +23,9 @@ UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    auto_release = asyncio.create_task(auto_release_loop())
     yield
+    auto_release.cancel()
 
 
 app = FastAPI(
@@ -40,6 +45,7 @@ app.include_router(ai_matching_router)
 app.include_router(freelancer_profile_router)
 app.include_router(invitations_router)
 app.include_router(disputes_router)
+app.include_router(orchestrator_router)
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 
