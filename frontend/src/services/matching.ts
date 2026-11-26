@@ -117,7 +117,7 @@ const POOL: TalentProfile[] = [
   {
     handle: 'TL-1873',
     headline: 'Junior backend developer',
-    skills: ['FastAPI', 'Python', 'Docker', 'SQLite'],
+    skills: ['FastAPI', 'Python', 'Docker', 'PostgreSQL'],
     industries: ['retail'],
     experienceYears: 1,
     availability: 'Available now',
@@ -125,7 +125,7 @@ const POOL: TalentProfile[] = [
     availableNow: true,
     dailyRateIdr: 200_000,
     about: 'Writes REST APIs in Python. Built an inventory API for a small business and set up its Docker containers.',
-    portfolio: [{ title: 'SME inventory API', summary: 'CRUD API with SQLite and a Docker setup.', stack: ['FastAPI', 'Docker'], verified: false }],
+    portfolio: [{ title: 'SME inventory API', summary: 'CRUD API with PostgreSQL and a Docker setup.', stack: ['FastAPI', 'PostgreSQL', 'Docker'], verified: false }],
     completedProjects: 4,
     onTimeRate: null,
     identity: { name: 'Dimas Arya', role: 'Backend Developer', location: 'Malang', initials: 'DA' },

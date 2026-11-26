@@ -7,8 +7,10 @@ from database import engine
 
 
 def run(connection) -> None:
-    # render_as_batch: SQLite tidak mendukung sebagian besar ALTER TABLE, jadi Alembic menyalin tabel.
-    context.configure(connection=connection, target_metadata=SQLModel.metadata, render_as_batch=True)
+    context.configure(
+        connection=connection,
+        target_metadata=SQLModel.metadata,
+    )
     with context.begin_transaction():
         context.run_migrations()
 

@@ -54,7 +54,7 @@ def _require_role(user: User, role: str) -> None:
 
 
 def _iso(dt: Optional[datetime]) -> Optional[str]:
-    """SQLite mengembalikan datetime tanpa zona waktu; semua disimpan sebagai UTC."""
+    """Serialisasi datetime sebagai ISO dan anggap nilai naif sebagai UTC."""
     if dt is None:
         return None
     return (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).isoformat()

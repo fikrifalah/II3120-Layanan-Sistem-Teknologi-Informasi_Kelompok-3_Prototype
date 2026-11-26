@@ -19,10 +19,10 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from pydantic import Field as PField
-from sqlmodel import Field, Session, SQLModel, or_, select
+from sqlmodel import Session, or_, select
 
 from database import get_db
-from models import Contract, Dispute, Job, Milestone, User
+from models import Contract, Dispute, DisputeEvidence, Job, Milestone, User
 from services.auth.router import current_user
 from services.orchestrator import workflow as wf
 from services.smart_contract import service as chain
@@ -33,19 +33,6 @@ MAX_EVIDENCE_FILES = 5
 MAX_EVIDENCE_BYTES = 10 * 1024 * 1024
 DISPUTABLE_ONCHAIN = {"LOCKED", "SUBMITTED"}
 MILESTONE_STATUS_AFTER_VERDICT = {"RELEASE": "released", "REFUND": "refunded", "SPLIT": "split"}
-
-
-class DisputeEvidence(SQLModel, table=True):
-    __tablename__ = "dispute_evidence"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    dispute_id: int = Field(foreign_key="dispute.id", index=True)
-    uploaded_by_id: int = Field(foreign_key="user.id")
-    filename: str  # nama asli dari pengunggah
-    stored_name: str  # nama acak di uploads/disputes/
-    size_bytes: int
-    sha256: str
-    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class VerdictRequest(BaseModel):

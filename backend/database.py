@@ -6,10 +6,16 @@ from sqlmodel import Session, create_engine
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg://gigly:gigly@localhost:5432/gigly",
+)
+if not DATABASE_URL.startswith("postgresql+psycopg://"):
+    raise ValueError("DATABASE_URL must use PostgreSQL with the psycopg driver")
+
 ALEMBIC_INI = Path(__file__).resolve().parent / "alembic.ini"
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 
 def init_db() -> None:

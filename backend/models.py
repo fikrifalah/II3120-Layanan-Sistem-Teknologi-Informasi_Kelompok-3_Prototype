@@ -84,3 +84,16 @@ class Dispute(SQLModel, table=True):
     client_refund: Optional[float] = None  # SIM-IDR
     verdict_tx_hash: Optional[str] = None
     resolved_at: Optional[datetime] = None
+
+
+class DisputeEvidence(SQLModel, table=True):
+    __tablename__ = "dispute_evidence"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    dispute_id: int = Field(foreign_key="dispute.id", index=True)
+    uploaded_by_id: int = Field(foreign_key="user.id")
+    filename: str
+    stored_name: str
+    size_bytes: int
+    sha256: str
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

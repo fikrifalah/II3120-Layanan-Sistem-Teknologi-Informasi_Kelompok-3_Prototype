@@ -8,7 +8,6 @@ from sqlmodel import Session, select
 import models  # noqa: F401  (mendaftarkan tabel tim)
 from database import engine, init_db
 from models import User
-from services.dispute_handler.service import DisputeEvidence  # noqa: F401  (mendaftarkan tabel bukti)
 from services.smart_contract.service import arbiter_address
 
 EMAIL = "arbiter@example.com"
