@@ -41,6 +41,7 @@ const MILESTONE: Record<MilestoneStatus, [string, Tone]> = {
   disputed: ['Disputed', 'danger'],
   released: ['Paid', 'success'],
   refunded: ['Refunded', 'neutral'],
+  split: ['Split by arbiter', 'neutral'],
 }
 
 const CONTRACT: Record<ContractStatus, [string, Tone]> = {

@@ -32,6 +32,7 @@ export function CopyButton({ value, label }: { value: string; label: string }) {
 export default function FundEscrow() {
   const { projectId = '' } = useParams()
   const store = useStore()
+  const toast = useToast()
   const project = store.getProject(projectId)
   const contract = store.contracts.find((c) => c.projectId === projectId)
   const [phase, setPhase] = useState<Phase>(contract?.status === 'active' ? 'confirmed' : 'idle')
@@ -50,10 +51,13 @@ export default function FundEscrow() {
     try {
       setTx(await store.fundContract(contract.id))
       setPhase('confirmed')
-    } catch {
+    } catch (e) {
       setPhase('failed')
+      toast({ tone: 'danger', title: e instanceof Error ? e.message : 'Funding failed.' })
     }
   }
+  const addTokens = () =>
+    store.addDemoTokens().catch((e) => toast({ tone: 'danger', title: e instanceof Error ? e.message : 'Unable to add demo tokens.' }))
 
   return (
     <div>
@@ -130,7 +134,7 @@ export default function FundEscrow() {
                 Open project workspace
               </LinkButton>
             ) : short ? (
-              <Button block variant="secondary" onClick={store.addDemoTokens}>
+              <Button block variant="secondary" onClick={addTokens}>
                 Get 20,000 demo tokens
               </Button>
             ) : (

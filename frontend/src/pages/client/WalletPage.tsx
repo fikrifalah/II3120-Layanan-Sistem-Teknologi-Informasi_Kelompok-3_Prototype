@@ -31,10 +31,12 @@ export default function WalletPage() {
           <Button
             variant="secondary"
             icon={<Plus className="size-4" aria-hidden />}
-            onClick={() => {
-              addDemoTokens()
-              toast({ tone: 'success', title: '20,000 SIM-IDR added', body: 'Demo tokens on the local network.' })
-            }}
+            onClick={() =>
+              addDemoTokens().then(
+                () => toast({ tone: 'success', title: '20,000 SIM-IDR added', body: 'Demo tokens on the local network.' }),
+                (e) => toast({ tone: 'danger', title: e instanceof Error ? e.message : 'Unable to add demo tokens.' }),
+              )
+            }
           >
             Get demo tokens
           </Button>

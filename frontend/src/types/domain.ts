@@ -112,6 +112,7 @@ export type MilestoneStatus =
   | 'disputed'
   | 'released'
   | 'refunded'
+  | 'split' // putusan arbiter: dana dibagi freelancer & client
 
 export interface Criterion {
   id: string
@@ -121,6 +122,8 @@ export interface Criterion {
 
 export interface SubmissionFile {
   blobId?: string
+  /** id berkas di backend (mode VITE_CONTRACTS_API). */
+  apiId?: number
   name: string
   description: string
   size?: string
@@ -140,6 +143,8 @@ export interface Submission {
 
 export interface Milestone {
   id: string
+  /** id baris `milestone` di backend (mode VITE_CONTRACTS_API). */
+  backendId?: number
   seq: number
   title: string
   description: string
@@ -153,12 +158,16 @@ export interface Milestone {
   revisionNote?: string
   disputeReason?: string
   releasedAt?: string
+  /** Pembagian dana saat milestone selesai (backend): ke freelancer dan kembali ke client. */
+  settlement?: { freelancer: number; client: number }
 }
 
 export type ContractStatus = 'draft' | 'pending_approval' | 'awaiting_funding' | 'active' | 'closed'
 
 export interface Contract {
   id: string
+  /** id baris `contract` di backend; ada setelah kontrak dikirim (mode VITE_CONTRACTS_API). */
+  backendId?: number
   projectId: string
   candidateId: string
   status: ContractStatus
