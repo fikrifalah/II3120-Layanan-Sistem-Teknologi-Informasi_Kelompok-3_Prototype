@@ -1,4 +1,4 @@
-.my-profile { color:#171434; }
+.my-profile { color:#1a1a22; }
 .profile-heading { display:flex; align-items:center; gap:20px; padding:0 8px 18px; }
 .profile-heading img { width:clamp(60px,6.6vw,98px); border-radius:50%; }
 .profile-heading h1 { font-weight:760; font-size:clamp(24px,2.2vw,34px); letter-spacing:-.04em; }
@@ -19,13 +19,13 @@
 .profile-rate b { display:grid; place-items:center; background:var(--soft); padding:0 20px; }
 .profile-rate input { min-width:0; flex:1; padding:12px 14px; font-weight:550; }
 .profile-rate:focus-within { outline:2px solid var(--violet); }
-.rate-preview { display:flex; gap:24px; align-items:center; background:#f0ebfc; padding:20px; border-radius:12px; margin:24px 0 14px; }
+.rate-preview { display:flex; gap:24px; align-items:center; background:#f0effa; padding:20px; border-radius:12px; margin:24px 0 14px; }
 .rate-preview>svg { width:58px; height:58px; padding:10px; color:var(--violet); background:#e5dcfc; border-radius:12px; }
 .rate-preview div { border-left:1px solid #c1b8d8; padding-left:24px; }
 .rate-preview strong { display:block; color:var(--violet); font-size:clamp(23px,2vw,32px); }
 .rate-info { display:flex; align-items:flex-start; gap:8px; color:var(--muted); font-size:.91em; }
 .rate-info svg { flex:none; width:17px; }
-.profile-skills fieldset { display:grid; grid-template-columns:minmax(190px,26%) 1fr; align-items:center; padding:8px 0; border-bottom:1px solid #efedf6; gap:8px; min-width:0; }
+.profile-skills fieldset { display:grid; grid-template-columns:minmax(190px,26%) 1fr; align-items:center; padding:8px 0; border-bottom:1px solid #ececf1; gap:8px; min-width:0; }
 .profile-skills fieldset div { display:flex; flex-wrap:wrap; gap:7px; }
 .skill-option { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:6px 13px; min-height:36px; border:1px solid #9993aa; border-radius:8px; font-size:.93em; }
 .skill-option svg { width:16px; height:16px; }

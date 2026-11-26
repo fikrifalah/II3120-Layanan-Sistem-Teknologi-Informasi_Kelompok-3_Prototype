@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { formatSim, timeAgo } from '../lib/format'
+import { resetDemoMessages, useDemoMessages } from '../services/messages'
 import { useStore } from '../services/store'
 
 interface NavItem {
@@ -37,14 +38,17 @@ interface NavItem {
 
 function useNav(): NavItem[] {
   const { contracts } = useStore()
+  const conversations = useDemoMessages()
   const reviews = contracts.flatMap((c) => c.milestones).filter((m) => m.status === 'under_review').length
+  const unreadMessages = conversations.reduce((total, conversation) =>
+    total + conversation.messages.filter((message) => message.sender === 'freelancer' && !message.read).length, 0)
   return [
     { to: '/client', label: 'Dashboard', icon: <LayoutDashboard className="size-5" />, match: (p) => p === '/client' || p === '/client/dashboard' },
     { to: '/client/projects/new', label: 'Create Project', icon: <Plus className="size-5" /> },
     { to: '/client/projects', label: 'My Projects', icon: <FolderKanban className="size-5" />, badge: reviews || undefined, match: (p) => p.startsWith('/client/projects') && !p.startsWith('/client/projects/new') },
     { to: '/client/talent', label: 'Find Freelancers', icon: <Sparkles className="size-5" /> },
     { to: '/client/contracts', label: 'Contracts', icon: <FileText className="size-5" /> },
-    { to: '/client/messages', label: 'Messages', icon: <MessageSquare className="size-5" />, badge: 3 },
+    { to: '/client/messages', label: 'Messages', icon: <MessageSquare className="size-5" />, badge: unreadMessages || undefined },
     { to: '/client/wallet', label: 'Wallet', icon: <Wallet className="size-5" /> },
     { to: '/client/disputes', label: 'Disputes', icon: <Scale className="size-5" /> },
   ]
@@ -192,6 +196,7 @@ function AccountMenu({ onLogout }: { onLogout: () => void }) {
             type="button"
             onClick={() => {
               resetDemo()
+              resetDemoMessages()
               setOpen(false)
               navigate('/client')
             }}

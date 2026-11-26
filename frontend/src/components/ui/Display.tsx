@@ -64,7 +64,7 @@ export function CardTitle({ children, icon, action }: { children: ReactNode; ico
   return (
     <div className="mb-4 flex items-center justify-between gap-3">
       <h3 className="flex items-center gap-2 text-h3 text-ink">
-        {icon ?? <span className="h-5 w-1 rounded-full bg-brand" aria-hidden />}
+        {icon}
         {children}
       </h3>
       {action}
@@ -75,22 +75,22 @@ export function CardTitle({ children, icon, action }: { children: ReactNode; ico
 /* ---------- Data display ---------- */
 
 export function StatCard({ icon, label, value, tone = 'brand', to }: { icon: ReactNode; label: string; value: ReactNode; tone?: 'brand' | 'accent' | 'success'; to?: string }) {
-  const iconTone = { brand: 'bg-brand-soft text-brand', accent: 'bg-accent-soft text-accent-strong', success: 'bg-success-soft text-success' }[tone]
+  const iconTone = { brand: 'text-brand', accent: 'text-accent-strong', success: 'text-success' }[tone]
   const inner = (
     <>
-      <span className={cn('inline-flex size-10 shrink-0 items-center justify-center rounded-md sm:size-11', iconTone)}>{icon}</span>
-      <span className="min-w-0">
-        <span className="block text-small text-ink-muted">{label}</span>
-        <span className="tabular block text-h3 text-ink sm:truncate sm:text-h2">{value}</span>
+      <span className="flex items-center gap-2 text-small text-ink-muted">
+        <span className={cn('shrink-0 [&>svg]:size-4', iconTone)} aria-hidden>{icon}</span>
+        {label}
       </span>
+      <span className="tabular block min-w-0 truncate text-h1 text-ink md:text-h1-lg">{value}</span>
     </>
   )
   return to ? (
-    <Link to={to} className="card-link flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
+    <Link to={to} className="card-link flex flex-col gap-2 p-4 md:p-5">
       {inner}
     </Link>
   ) : (
-    <div className="card flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">{inner}</div>
+    <div className="card flex flex-col gap-2 p-4 md:p-5">{inner}</div>
   )
 }
 
@@ -124,7 +124,7 @@ export function KeyValue({ label, children, className }: { label: string; childr
 export function EmptyState({ icon, title, body, action }: { icon: ReactNode; title: string; body: string; action?: ReactNode }) {
   return (
     <div className="card flex flex-col items-center px-6 py-12 text-center">
-      <span className="mb-4 inline-flex size-14 items-center justify-center rounded-lg bg-brand-soft text-brand">{icon}</span>
+      <span className="mb-4 text-ink-muted [&>svg]:size-8" aria-hidden>{icon}</span>
       <p className="text-h3 text-ink">{title}</p>
       <p className="mt-1 max-w-sm text-small text-ink-muted">{body}</p>
       {action && <div className="mt-5">{action}</div>}

@@ -16,6 +16,7 @@ import FindTalent from './client/FindTalent'
 import Contracts from './client/Contracts'
 import WalletPage from './client/WalletPage'
 import Disputes from './client/Disputes'
+import Messages from './client/Messages'
 import Placeholder from './client/Placeholder'
 
 /**
@@ -43,7 +44,7 @@ export default function ClientView({ onLogout }: { onLogout: () => void }) {
             <Route path="contracts" element={<Contracts />} />
             <Route path="wallet" element={<WalletPage />} />
             <Route path="disputes" element={<Disputes />} />
-            <Route path="messages" element={<Placeholder kind="messages" />} />
+            <Route path="messages" element={<Messages />} />
             <Route path="settings" element={<Placeholder kind="settings" />} />
             <Route path="help" element={<Placeholder kind="help" />} />
             <Route path="*" element={<Navigate to="/client" replace />} />

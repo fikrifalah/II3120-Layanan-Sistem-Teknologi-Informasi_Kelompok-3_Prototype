@@ -28,7 +28,6 @@
 
   body {
     @apply bg-canvas font-sans text-body text-ink antialiased;
-    font-feature-settings: 'cv11', 'ss01';
     font-optical-sizing: auto;
   }
 
@@ -78,16 +77,16 @@
   }
   @media (hover: hover) and (pointer: fine) {
     .card-link:hover {
-      @apply -translate-y-0.5 border-[#D3CEF0] shadow-lift;
+      @apply border-line-control/50;
     }
   }
   .card-link:active {
-    transform: translateY(0) scale(0.995);
+    background-color: theme('colors.canvas');
     transition-duration: var(--dur-press);
   }
 
   .eyebrow {
-    @apply text-caption font-semibold uppercase tracking-[0.08em] text-ink-muted;
+    @apply text-caption font-medium text-ink-muted;
   }
 
   .skeleton {
@@ -119,7 +118,7 @@
    * non-uniform delays so a list reads as arriving together, not one by one.
    */
   .stagger > * {
-    animation: rise 380ms var(--ease-out) both;
+    animation: fade 220ms ease-out both;
   }
   .stagger > :nth-child(2) {
     animation-delay: 45ms;

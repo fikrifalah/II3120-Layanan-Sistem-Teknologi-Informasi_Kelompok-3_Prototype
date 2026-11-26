@@ -19,7 +19,7 @@ export function CandidateCard({ c, invitation, projectTitle }: { c: Candidate; i
   const profile = `/client/projects/${c.projectId}/candidates/${c.id}`
 
   return (
-    <article className="card overflow-hidden transition-[box-shadow,border-color] duration-200 hover:border-[#D3CEF0] hover:shadow-lift">
+    <article className="card overflow-hidden transition-[box-shadow,border-color] duration-200 hover:border-line-control/50">
       <div className="grid gap-5 p-4 md:grid-cols-2 md:p-5">
         {/* Who (anonymous) */}
         <div className="min-w-0">

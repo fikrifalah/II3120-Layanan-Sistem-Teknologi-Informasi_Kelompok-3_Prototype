@@ -19,7 +19,7 @@ export default function Contracts() {
         <EmptyState icon={<FileText className="size-6" />} title="No contracts yet" body="A contract is drafted after a freelancer accepts your invitation." action={<LinkButton to="/client/talent">Find freelancers</LinkButton>} />
       ) : (
         <div className="card overflow-hidden">
-          <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_140px_160px_24px] gap-4 border-b border-line bg-canvas/60 px-5 py-3 text-caption font-semibold uppercase tracking-wide text-ink-muted md:grid">
+          <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_140px_160px_24px] gap-4 border-b border-line bg-canvas/60 px-5 py-3 text-caption font-medium text-ink-muted md:grid">
             <span>Project</span>
             <span>Freelancer</span>
             <span className="text-right">Value</span>
