@@ -20,21 +20,19 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from pydantic import BaseModel
 from pydantic import Field as PField
 from sqlmodel import Field, Session, SQLModel, or_, select
-from web3 import Web3
-from web3.exceptions import ContractLogicError
 
 from database import get_db
 from models import Contract, Dispute, Job, Milestone, User
 from services.auth.router import current_user
+from services.orchestrator import workflow as wf
 from services.smart_contract import service as chain
 
 UPLOADS_DIR = Path(__file__).resolve().parents[2] / "uploads"
 EVIDENCE_SUBDIR = "disputes"
 MAX_EVIDENCE_FILES = 5
 MAX_EVIDENCE_BYTES = 10 * 1024 * 1024
-SETTLED_MILESTONE_STATUSES = {"released", "refunded", "split_settled"}
 DISPUTABLE_ONCHAIN = {"LOCKED", "SUBMITTED"}
-MILESTONE_STATUS_AFTER_VERDICT = {"RELEASE": "released", "REFUND": "refunded", "SPLIT": "split_settled"}
+MILESTONE_STATUS_AFTER_VERDICT = {"RELEASE": "released", "REFUND": "refunded", "SPLIT": "split"}
 
 
 class DisputeEvidence(SQLModel, table=True):
@@ -61,42 +59,18 @@ router = APIRouter(prefix="/api/v1/disputes", tags=["Disputes"])
 
 # ------------------------------------------------------------------ helper
 
-def _iso(dt: Optional[datetime]) -> Optional[str]:
-    """SQLite mengembalikan datetime tanpa zona waktu; semua disimpan sebagai UTC."""
-    if dt is None:
-        return None
-    return (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).isoformat()
-
-
 def _person(user: Optional[User]) -> Optional[dict]:
     return {"id": user.id, "name": user.name, "role": user.role} if user else None
-
-
-def _milestone_index(session: Session, milestone: Milestone) -> int:
-    ids = session.exec(
-        select(Milestone.id).where(Milestone.contract_id == milestone.contract_id).order_by(Milestone.id)
-    ).all()
-    return ids.index(milestone.id)
 
 
 def _is_participant(user: User, contract: Contract) -> bool:
     return user.id in (contract.client_id, contract.freelancer_id)
 
 
-def _chain_call(fn, *args):
-    """Panggil blockchain; terjemahkan kegagalan menjadi error HTTP yang jelas."""
-    try:
-        return fn(*args)
-    except ContractLogicError as e:
-        raise HTTPException(status_code=409, detail=f"Ditolak smart contract: {e.message or e}")
-    except (ConnectionError, FileNotFoundError, ValueError) as e:
-        raise HTTPException(status_code=503, detail=f"Blockchain tidak tersedia: {e}")
-
-
 def _onchain_milestone(contract: Contract, index: int) -> tuple[dict, dict]:
     if contract.onchain_contract_id is None:
         raise HTTPException(status_code=409, detail="Escrow kontrak ini belum dikunci di blockchain.")
-    onchain = _chain_call(chain.get_contract, contract.onchain_contract_id)
+    onchain = wf.chain_call(chain.get_contract, contract.onchain_contract_id)
     if index >= len(onchain["milestones"]):
         raise HTTPException(status_code=409, detail="Milestone ini tidak ada di escrow on-chain.")
     return onchain, onchain["milestones"][index]
@@ -164,13 +138,13 @@ def _view(session: Session, dispute: Dispute, milestone: Milestone, contract: Co
             "freelancer_payout": dispute.freelancer_payout,
             "client_refund": dispute.client_refund,
             "transaction_hash": dispute.verdict_tx_hash,
-            "resolved_at": _iso(dispute.resolved_at),
+            "resolved_at": wf.iso(dispute.resolved_at),
         }
     return {
         "id": dispute.id,
         "status": dispute.status,
         "reason": dispute.reason,
-        "created_at": _iso(dispute.created_at),
+        "created_at": wf.iso(dispute.created_at),
         "raise_transaction_hash": dispute.raise_tx_hash,
         "raised_by": _person(session.get(User, dispute.raised_by_id)),
         "assigned_arbiter": _person(session.get(User, dispute.arbiter_id)),
@@ -178,13 +152,13 @@ def _view(session: Session, dispute: Dispute, milestone: Milestone, contract: Co
         "freelancer": _person(session.get(User, contract.freelancer_id)),
         "contract": {"id": contract.id, "onchain_contract_id": contract.onchain_contract_id,
                      "job_id": contract.job_id, "job_title": job.title if job else None},
-        "milestone": {"id": milestone.id, "index": _milestone_index(session, milestone),
+        "milestone": {"id": milestone.id, "index": wf.onchain_index(milestone),
                       "title": milestone.title, "amount": milestone.amount, "status": milestone.status,
                       "deliverable_url": milestone.deliverable_url, "deliverable_hash": milestone.deliverable_hash},
         "evidence": [
             {"id": e.id, "filename": e.filename, "url": f"/uploads/{EVIDENCE_SUBDIR}/{e.stored_name}",
              "sha256": e.sha256, "size_bytes": e.size_bytes,
-             "uploaded_by": _person(session.get(User, e.uploaded_by_id)), "uploaded_at": _iso(e.uploaded_at)}
+             "uploaded_by": _person(session.get(User, e.uploaded_by_id)), "uploaded_at": wf.iso(e.uploaded_at)}
             for e in evidence
         ],
         "verdict": verdict,
@@ -206,28 +180,30 @@ async def raise_dispute(
     contract = session.get(Contract, milestone.contract_id) if milestone else None
     if contract is None or not _is_participant(user, contract):
         raise HTTPException(status_code=404, detail=f"milestone {milestone_id} tidak ditemukan")
-    if milestone.status in SETTLED_MILESTONE_STATUSES:
+    if milestone.status in wf.SETTLED:
         raise HTTPException(status_code=409, detail="Milestone ini sudah selesai dibayar atau dikembalikan.")
     if session.exec(select(Dispute).where(Dispute.milestone_id == milestone.id, Dispute.status == "open")).first():
         raise HTTPException(status_code=409, detail="Milestone ini sudah dalam sengketa.")
     files = await _read_evidence(evidence)
 
-    index = _milestone_index(session, milestone)
+    index = wf.onchain_index(milestone)
     onchain, onchain_ms = _onchain_milestone(contract, index)
     if onchain_ms["status"] not in DISPUTABLE_ONCHAIN:
         raise HTTPException(status_code=409, detail=f"Milestone on-chain berstatus {onchain_ms['status']}, tidak bisa disengketakan.")
     arbiter = _pick_arbiter(session, onchain["arbiter"])
 
     # Escrow.raiseDispute hanya menerima tanda tangan client atau freelancer milestone tsb.
-    signer = onchain["client"] if user.id == contract.client_id else onchain_ms["freelancer"]
-    key = _chain_call(chain.dev_private_key_for, signer)
-    tx = _chain_call(chain.raise_dispute_onchain, contract.onchain_contract_id, index, key)
+    expected = onchain["client"] if user.id == contract.client_id else onchain_ms["freelancer"]
+    if chain.user_address(user.id).lower() != expected.lower():
+        raise HTTPException(status_code=409, detail="Wallet akun ini bukan pihak milestone tersebut di blockchain.")
+    tx = wf.chain_call(chain.raise_dispute_onchain, user.id, contract.onchain_contract_id, index)
 
     dispute = Dispute(milestone_id=milestone.id, raised_by_id=user.id, arbiter_id=arbiter.id,
                       reason=reason.strip(), raise_tx_hash=tx["tx_hash"])
     session.add(dispute)
     milestone.status = "disputed"
     session.add(milestone)
+    wf.log_activity(session, contract.id, f"Dispute raised on Milestone {milestone.sequence}; funds frozen")
     session.flush()
     _save_evidence(session, dispute.id, user, files)
     session.commit()
@@ -296,17 +272,17 @@ def execute_verdict(
     if req.verdict_action == "SPLIT" and req.freelancer_share_percentage is None:
         raise HTTPException(status_code=422, detail="SPLIT wajib menyertakan freelancer_share_percentage (1-99).")
 
-    index = _milestone_index(session, milestone)
+    index = wf.onchain_index(milestone)
     onchain, onchain_ms = _onchain_milestone(contract, index)
     if onchain_ms["status"] != "DISPUTED":
         raise HTTPException(status_code=409, detail=f"Milestone on-chain berstatus {onchain_ms['status']}, bukan DISPUTED.")
-    if _chain_call(chain.arbiter_address).lower() != onchain["arbiter"].lower():
+    if wf.chain_call(chain.arbiter_address).lower() != onchain["arbiter"].lower():
         raise HTTPException(status_code=503, detail="ARBITER_PRIVATE_KEY bukan arbiter kontrak ini di blockchain.")
 
     share = {"RELEASE": 100, "REFUND": 0}.get(req.verdict_action, req.freelancer_share_percentage)
     amount = onchain_ms["amount"]
     freelancer_wei = amount * share // 100  # pembulatan sama dengan Escrow.sol
-    tx = _chain_call(chain.execute_arbiter_verdict_onchain, contract.onchain_contract_id, index,
+    tx = wf.chain_call(chain.execute_arbiter_verdict_onchain, contract.onchain_contract_id, index,
                      req.verdict_action, share if req.verdict_action == "SPLIT" else 0)
     if tx["status"] != 1:
         raise HTTPException(status_code=502, detail=f"Transaksi putusan gagal di blockchain ({tx['tx_hash']}).")
@@ -315,12 +291,13 @@ def execute_verdict(
     dispute.verdict = req.verdict_action
     dispute.freelancer_share_pct = share
     dispute.verdict_reasoning = req.verdict_reasoning.strip()
-    dispute.freelancer_payout = float(Web3.from_wei(freelancer_wei, "ether"))
-    dispute.client_refund = float(Web3.from_wei(amount - freelancer_wei, "ether"))
+    dispute.freelancer_payout = wf.from_wei(freelancer_wei)
+    dispute.client_refund = wf.from_wei(amount - freelancer_wei)
     dispute.verdict_tx_hash = tx["tx_hash"]
-    dispute.resolved_at = datetime.now(timezone.utc)
-    milestone.status = MILESTONE_STATUS_AFTER_VERDICT[req.verdict_action]
+    dispute.resolved_at = wf.now()
     session.add(dispute)
-    session.add(milestone)
+    wf.settle_milestone(session, contract, milestone, MILESTONE_STATUS_AFTER_VERDICT[req.verdict_action],
+                        f"Arbiter verdict on Milestone {milestone.sequence}: {req.verdict_action} "
+                        f"({share}% to freelancer)")
     session.commit()
     return {"data": _view(session, dispute, milestone, contract)}

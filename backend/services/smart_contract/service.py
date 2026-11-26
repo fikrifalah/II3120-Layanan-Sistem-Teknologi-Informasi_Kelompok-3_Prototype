@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 from dotenv import load_dotenv
 from eth_account import Account
 from web3 import Web3
+from web3.logs import DISCARD
 
 load_dotenv()
 
@@ -100,28 +101,55 @@ def _send_tx_with_key(w3: Web3, contract_fn, private_key) -> tuple[str, Any]:
     return Web3.to_hex(tx_hash), receipt
 
 
-# Mnemonic bawaan Hardhat: 20 akun test di jaringan lokal (chainId 31337).
+# ------------------------------------------------------------------ wallet dev per user (PROTOTYPE)
+# Frontend belum punya wallet (MetaMask), jadi backend memegang wallet setiap user (custodial).
+# Wallet diturunkan dari mnemonic bawaan Hardhat pada index 100 + user.id: unik per user, tidak perlu
+# disimpan, dan tidak bentrok dengan 20 akun bawaan (index 0-19; #0 platform, #1 arbiter).
+# JANGAN dipakai di jaringan sungguhan.
 HARDHAT_MNEMONIC = "test test test test test test test test test test test junk"
+USER_WALLET_OFFSET = 100
+GAS_TOP_UP_WEI = Web3.to_wei(1, "ether")
+GAS_MIN_WEI = Web3.to_wei(0.1, "ether")
 
 
-@lru_cache(maxsize=1)
-def _dev_wallet_keys() -> Dict[str, bytes]:
+@lru_cache(maxsize=None)
+def user_account(user_id: int):
+    """Wallet dev milik user (LocalAccount: .address, .key)."""
     Account.enable_unaudited_hdwallet_features()
     mnemonic = os.getenv("DEV_WALLET_MNEMONIC") or HARDHAT_MNEMONIC
-    accounts = (Account.from_mnemonic(mnemonic, account_path=f"m/44'/60'/0'/0/{i}") for i in range(20))
-    return {a.address.lower(): a.key for a in accounts}
+    return Account.from_mnemonic(mnemonic, account_path=f"m/44'/60'/0'/0/{USER_WALLET_OFFSET + int(user_id)}")
 
 
-def dev_private_key_for(address: str) -> bytes:
-    """PROTOTYPE SAJA: private key akun dev Hardhat untuk `address`.
+def user_address(user_id: int) -> str:
+    return user_account(user_id).address
 
-    Frontend belum punya wallet (MetaMask), jadi backend menandatangani transaksi atas nama
-    client/freelancer memakai akun test Hardhat. Jangan dipakai di jaringan sungguhan.
-    """
-    key = _dev_wallet_keys().get(address.lower())
-    if key is None:
-        raise ValueError(f"Wallet {address} bukan akun dev Hardhat; private key tidak tersedia.")
+
+def _platform_key() -> str:
+    key = os.getenv("PLATFORM_PRIVATE_KEY")
+    if not key:
+        raise ValueError("PLATFORM_PRIVATE_KEY is not set in environment")
     return key
+
+
+def _ensure_gas(w3: Web3, address: str) -> None:
+    """Akun platform mengirim ETH lokal bila wallet user hampir habis gas."""
+    if w3.eth.get_balance(address) >= GAS_MIN_WEI:
+        return
+    platform = Account.from_key(_platform_key())
+    tx = {"to": address, "value": GAS_TOP_UP_WEI, "from": platform.address, "chainId": w3.eth.chain_id,
+          "nonce": w3.eth.get_transaction_count(platform.address), "gas": 21000, "gasPrice": w3.eth.gas_price}
+    signed = w3.eth.account.sign_transaction(tx, private_key=platform.key)
+    w3.eth.wait_for_transaction_receipt(w3.eth.send_raw_transaction(signed.raw_transaction))
+
+
+def _send_as_user(w3: Web3, user_id: int, contract_fn) -> tuple[str, Any]:
+    account = user_account(user_id)
+    _ensure_gas(w3, account.address)
+    return _send_tx_with_key(w3, contract_fn, account.key)
+
+
+def _receipt(tx_hash: str, receipt, **extra) -> Dict[str, Any]:
+    return {"tx_hash": tx_hash, "status": receipt["status"], **extra}
 
 
 def arbiter_address() -> str:
@@ -132,18 +160,79 @@ def arbiter_address() -> str:
     return Account.from_key(private_key).address
 
 
-def raise_dispute_onchain(contract_id: int, milestone_index: int, signer_private_key) -> Dict[str, Any]:
-    """Bekukan milestone (status DISPUTED). Penanda tangan wajib client atau freelancer milestone tsb."""
+def escrow_address() -> str:
+    return get_escrow_contract().address
+
+
+# ------------------------------------------------------------------ token SIM-IDR
+def token_balance(address: str) -> int:
+    """Saldo SIM-IDR dalam satuan terkecil (wei, 18 desimal)."""
+    return get_simidr_contract().functions.balanceOf(Web3.to_checksum_address(address)).call()
+
+
+def faucet(address: str, amount_wei: int) -> Dict[str, Any]:
+    """Cetak token simulasi ke `address` (fungsi faucet publik SIMIDR), ditandatangani akun platform."""
+    w3 = get_web3()
+    fn = get_simidr_contract(w3).functions.mint(Web3.to_checksum_address(address), int(amount_wei))
+    return _receipt(*_send_tx_with_key(w3, fn, _platform_key()))
+
+
+# ------------------------------------------------------------------ operasi escrow (EscrowPaymentContract)
+def create_and_lock_escrow(client_user_id: int, contract_hash: bytes, freelancer_address: str,
+                           milestone_amounts_wei: List[int]) -> Dict[str, Any]:
+    """Client menyetujui token lalu mengunci seluruh dana milestone sekaligus. Arbiter = default Escrow.sol."""
     w3 = get_web3()
     escrow = get_escrow_contract(w3)
-    fn = escrow.functions.raiseDispute(int(contract_id), int(milestone_index))
-    tx_hash, receipt = _send_tx_with_key(w3, fn, signer_private_key)
-    return {
-        "tx_hash": tx_hash,
-        "status": receipt["status"],
-        "contract_id": contract_id,
-        "milestone_index": milestone_index,
-    }
+    total = sum(milestone_amounts_wei)
+    _send_as_user(w3, client_user_id, get_simidr_contract(w3).functions.approve(escrow.address, total))
+    fn = escrow.functions.createAndLockEscrow(
+        contract_hash, Web3.to_checksum_address(freelancer_address), "0x" + "0" * 40,
+        [int(a) for a in milestone_amounts_wei],
+    )
+    tx_hash, receipt = _send_as_user(w3, client_user_id, fn)
+    (event,) = escrow.events.EscrowCreatedAndLocked().process_receipt(receipt, errors=DISCARD)  # abaikan event Transfer token
+    return _receipt(tx_hash, receipt, contract_id=event["args"]["contractId"], escrow_address=escrow.address)
+
+
+def submit_milestone_onchain(freelancer_user_id: int, contract_id: int, milestone_index: int,
+                             deliverable_hash: bytes) -> Dict[str, Any]:
+    """Freelancer mencatat hash hasil kerja; memulai timer review 5 hari di smart contract."""
+    w3 = get_web3()
+    fn = get_escrow_contract(w3).functions.submitMilestone(int(contract_id), int(milestone_index), deliverable_hash)
+    return _receipt(*_send_as_user(w3, freelancer_user_id, fn))
+
+
+def release_milestone_onchain(contract_id: int, milestone_index: int, client_user_id: int | None = None) -> Dict[str, Any]:
+    """Cairkan milestone ke freelancer. client_user_id=None: auto-release setelah timeout, ditandatangani platform."""
+    w3 = get_web3()
+    fn = get_escrow_contract(w3).functions.releaseMilestonePayment(int(contract_id), int(milestone_index))
+    if client_user_id is None:
+        return _receipt(*_send_tx_with_key(w3, fn, _platform_key()))
+    return _receipt(*_send_as_user(w3, client_user_id, fn))
+
+
+def reassign_remaining_onchain(client_user_id: int, contract_id: int, new_freelancer_address: str) -> Dict[str, Any]:
+    w3 = get_web3()
+    fn = get_escrow_contract(w3).functions.reassignRemainingMilestones(
+        int(contract_id), Web3.to_checksum_address(new_freelancer_address))
+    return _receipt(*_send_as_user(w3, client_user_id, fn))
+
+
+def raise_dispute_onchain(user_id: int, contract_id: int, milestone_index: int) -> Dict[str, Any]:
+    """Bekukan milestone (status DISPUTED). Penanda tangan wajib client atau freelancer milestone tsb."""
+    w3 = get_web3()
+    fn = get_escrow_contract(w3).functions.raiseDispute(int(contract_id), int(milestone_index))
+    return _receipt(*_send_as_user(w3, user_id, fn), contract_id=contract_id, milestone_index=milestone_index)
+
+
+def review_timeout_reached(contract_id: int, milestone_index: int) -> bool:
+    """True bila milestone SUBMITTED dan 5 hari review sudah lewat menurut waktu blok terakhir."""
+    w3 = get_web3()
+    escrow = get_escrow_contract(w3)
+    _, _, status, submitted_at, _ = escrow.functions.milestones(int(contract_id), int(milestone_index)).call()
+    timeout = escrow.functions.REVIEW_TIMEOUT().call()
+    now = w3.eth.get_block("latest")["timestamp"]
+    return MILESTONE_STATUSES.get(status) == "SUBMITTED" and submitted_at > 0 and now >= submitted_at + timeout
 
 
 def get_contract(contract_id: int) -> Dict[str, Any]:
