@@ -159,6 +159,18 @@ ARBITER_PRIVATE_KEY=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b
 
 ---
 
+### Database Migrations (Alembic)
+The backend upgrades `backend/app.db` automatically on startup, so after `git pull` just run `npm run dev`. Existing data is kept.
+
+When you change a table (`backend/models.py` or a module's `SQLModel` table), create a migration and commit it together with the model change:
+```powershell
+cd backend
+alembic revision --autogenerate -m "short description"   # writes backend/migrations/versions/<rev>_<slug>.py
+```
+Review the generated file, then restart the backend to apply it. `alembic current` shows the database version; `python -m pytest tests/test_migrations.py` fails if models and migrations are out of sync.
+
+---
+
 ### Quick Reminders
 - **Restarted `npm run dev`?** The local Hardhat node resets to block 0 on restart — just re-run `npm run deploy` in a second terminal (contract addresses stay identical on a fresh node).
 - **Prefer separate terminals?** Run `npm run blockchain`, `npm run backend`, and `npm run frontend` individually from the project root.
