@@ -23,34 +23,39 @@ project-root/
 │   │   └── deploy.js                    # Local Hardhat deployment script
 │   └── test/
 │       └── Escrow.test.js               # Hardhat/Chai unit & integration test suite
-├── backend/                             # FastAPI + web3.py + hashlib + SQLite
+├── backend/                             # FastAPI + SQLModel + SQLite + Alembic + web3.py
 │   ├── .env.example                     # Backend environment variable template
-│   ├── main.py                          # Minimal FastAPI app + StaticFiles mount for /uploads
-│   ├── database.py                      # Local SQLite (sqlite:///./app.db) + SQLModel get_db()
-│   ├── models.py                        # Shared off-chain DB schemas (User, Job, Contract, Milestone, Escrow, Dispute)
-│   ├── requirements.txt                 # fastapi, uvicorn, sqlmodel, web3, python-multipart, python-dotenv
+│   ├── main.py                          # FastAPI app: routers, /uploads mount, auto-release background task
+│   ├── database.py                      # SQLite engine, get_db(), init_db() = run Alembic migrations
+│   ├── models.py                        # Shared tables (User, Job, Contract, Milestone, Escrow, Dispute)
+│   ├── alembic.ini                      # Alembic config (see "Database Migrations")
+│   ├── migrations/versions/             # One file per schema change, applied automatically on startup
+│   ├── requirements.txt
+│   ├── tests/test_migrations.py         # Fresh DB, legacy app.db upgrade, models vs migrations in sync
 │   ├── uploads/                         # Local off-chain storage for deliverables & dispute evidence
-│   │   └── .gitkeep
 │   └── services/
-│       ├── orchestrator/                # PlatformOrchestrator & MilestoneStatusNotification
-│       │   ├── __init__.py
-│       │   └── router.py                # [BLANK] Main API routes (/api/v1/contracts, /milestones/*, etc.)
-│       ├── ai_matching/                 # AIMatchingProvider (MatchingServiceContract)
-│       │   ├── __init__.py
-│       │   └── service.py               # [BLANK] Anonymized matching (/api/v1/matching/recommend)
-│       ├── smart_contract/              # SmartContractProvider (EscrowPaymentContract)
-│       │   ├── __init__.py
-│       │   └── service.py               # web3.py RPC wrapper for Escrow & SIMIDR contracts
-│       └── dispute_handler/             # DisputeResolutionContract
-│           ├── __init__.py
-│           └── service.py               # [BLANK] Dispute & arbiter verdict (/api/v1/disputes, /verdict)
-└── frontend/                            # Vite + React + Tailwind CSS
-    ├── .env.example                     # Frontend environment variable template
+│       ├── auth/router.py               # Login & bearer tokens (/api/v1/auth)
+│       ├── invitations/router.py        # Client invites, freelancer accepts (/api/v1/invitations)
+│       ├── ai_matching/                 # AIMatchingProvider: anonymized matching (/api/v1/matching), freelancer profile (/api/v1/freelancer)
+│       │   ├── docs/                    # Matching design & context
+│       │   └── script/seed_db.py        # Seeds clients & freelancers into app.db
+│       ├── smart_contract/service.py    # SmartContractProvider: web3.py bridge, custodial dev wallets, faucet
+│       ├── orchestrator/                # PlatformOrchestrator (/api/v1/contracts, /escrow, /milestones, /projects, /files, /wallet)
+│       │   ├── router.py
+│       │   ├── workflow.py              # Shared milestone state transitions & activity log
+│       │   └── auto_release.py          # Releases milestones after the 5-day review timeout
+│       └── dispute_handler/             # DisputeResolutionContract (/api/v1/disputes, /verdict)
+│           ├── service.py
+│           └── seed_arbiter.py          # Creates the arbiter account
+└── frontend/                            # Vite + React + TypeScript + Tailwind CSS
+    ├── .env.example                     # API base URL + VITE_*_API / VITE_USE_MOCK toggles
     └── src/
+        ├── services/                    # API clients (auth, matching, projectWork, ...) and mock store
         └── pages/
-            ├── ClientView.jsx           # [BLANK] ClientParticipant dashboard
-            ├── FreelancerView.jsx       # [BLANK] FreelancerParticipant dashboard
-            └── ArbiterView.jsx          # [BLANK] ArbiterParticipant dashboard
+            ├── Login.tsx
+            ├── ClientView.tsx, client/  # ClientParticipant: projects, matching, contracts, disputes
+            ├── FreelancerView.tsx, FreelancerProjects.tsx, FreelancerProfile.tsx, ReceivedInvitations.tsx
+            └── ArbiterView.tsx          # ArbiterParticipant dashboard
 ```
 
 ---
@@ -61,12 +66,12 @@ Each module is isolated into dedicated files so team members can build independe
 
 | Module | File Path(s) | SoaML Component / Role | Responsibilities | Assignee |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. Smart Contracts (On-Chain)** | `blockchain/contracts/SIMIDR.sol`<br>`blockchain/contracts/Escrow.sol`<br>`blockchain/scripts/deploy.js` | `SmartContractProvider` (On-Chain Layer) | `SIM-IDR` ERC-20 token, `Escrow.sol` multi-milestone vault (`ReentrancyGuard`, 5-day auto-release, handover, `RELEASE`/`REFUND`/`SPLIT` arbiter verdict, immutable closure), and deployment script. | `@Member-1` |
-| **2. Smart Contract RPC Service** | `backend/services/smart_contract/service.py` | `SmartContractProvider` (`EscrowPaymentContract`) | `web3.py` bridge connecting FastAPI to Hardhat node (`get_contract`, `execute_arbiter_verdict_onchain`, `close_contract_onchain`). | `@Member-2` |
-| **3. Platform Orchestrator** | `backend/services/orchestrator/router.py` | `PlatformOrchestrator` & `MilestoneStatusNotification` | Core REST API routes (`/api/v1/contracts`, `/milestones/*`, file upload + `hashlib` SHA-256 hashing to `/uploads`) and cross-service workflow orchestration. | `@Member-3` |
-| **4. AI Matching Service** | `backend/services/ai_matching/service.py` | `AIMatchingProvider` (`MatchingServiceContract`) | Anonymized candidate recommendation & skill scoring engine (`/api/v1/matching/recommend`). | `@Member-4` |
-| **5. Dispute Handler Service** | `backend/services/dispute_handler/service.py` | `DisputeResolutionContract` | Dispute filing, evidence upload hashing, escrow freeze triggers, and executing arbiter rulings (`/api/v1/disputes`, `/verdict`). | `@Member-5` |
-| **6. Frontend Participant Views** | `frontend/src/pages/ClientView.jsx`<br>`frontend/src/pages/FreelancerView.jsx`<br>`frontend/src/pages/ArbiterView.jsx` | `ClientParticipant`<br>`FreelancerParticipant`<br>`ArbiterParticipant` | Role dashboards for job posting, anonymized AI match selection, escrow funding, deliverable submission, and arbiter dispute resolution. | `@Member-6` |
+| **1. AI Matching** | `backend/services/ai_matching/` | `AIMatchingProvider` (`MatchingServiceContract`) | CV indexing, anonymized candidate recommendation & scoring, freelancer profile, seed data. | Krisna (`@yaisnaa`) |
+| **2. Smart Contracts** | `blockchain/`<br>`backend/services/smart_contract/service.py` | `SmartContractProvider` (`EscrowPaymentContract`) | `SIM-IDR` token, `Escrow.sol` (milestones, 5-day auto-release, handover, arbiter verdict), deployment, `web3.py` bridge. | Fikri (`@fikrifalah`) |
+| **3. Dispute Handling & Orchestrator** | `backend/services/dispute_handler/`<br>`backend/services/orchestrator/`<br>`backend/migrations/` | `DisputeResolutionContract`<br>`PlatformOrchestrator` & `MilestoneStatusNotification` | Disputes, evidence hashing, on-chain freeze & verdict; contracts, escrow lock, milestone submit/approve, files, wallet, auto-release; DB migrations. | Daniel (`@danarrigo`) |
+| **4. Freelancer Interface** | `frontend/src/pages/Freelancer*.tsx`, `ReceivedInvitations.tsx` | `FreelancerParticipant` | Invitations, profile, project workspace & deliverable submission. | Dani (`@LaurensiusDani`) |
+| **5. Client Interface** | `frontend/src/pages/ClientView.tsx`, `frontend/src/pages/client/` | `ClientParticipant` | Job posting, AI match selection, contract builder, escrow funding, approvals. | Kenny (`@kaem-nyoba`) |
+| **6. Arbiter Interface** | `frontend/src/pages/ArbiterView.tsx` | `ArbiterParticipant` | Dispute review & verdict. | Jeko |
 
 ---
 
@@ -111,6 +116,16 @@ npx hardhat compile
 cd ..
 ```
 
+#### E. Seed Demo Data (Optional, Once)
+The database (`backend/app.db`) is created and migrated automatically when the backend starts. To fill it with demo accounts:
+```powershell
+backend/.venv/Scripts/python backend/services/ai_matching/script/seed_db.py   # clients & freelancers (needs LLM_API_KEY)
+cd backend
+.venv/Scripts/python -m services.dispute_handler.seed_arbiter                  # arbiter@example.com / 1234
+cd ..
+# macOS / Linux: use .venv/bin/python instead of .venv/Scripts/python
+```
+
 ---
 
 ### 2. Daily Dev Workflow
@@ -124,7 +139,7 @@ npm run dev
 | Service | Stack | Local URL |
 | :--- | :--- | :--- |
 | **Blockchain** | Hardhat Local Node (Chain ID `31337`) | `http://127.0.0.1:8545` |
-| **Backend** | FastAPI + SQLModel + `web3.py` | `http://localhost:8000` (Swagger: `/docs`) |
+| **Backend** | FastAPI + SQLModel + Alembic + `web3.py` | `http://localhost:8000` (Swagger: `/docs`) |
 | **Frontend** | Vite + React + Tailwind CSS | `http://localhost:5173` |
 
 #### Step 2 — Deploy Smart Contracts Locally
@@ -137,6 +152,7 @@ npm run deploy
 Ensure `backend/.env` contains the addresses printed by `npm run deploy` and Hardhat's local test keys (no quotes, no spaces around `=`):
 ```ini
 DATABASE_URL=sqlite:///./app.db
+LLM_BASE_URL=https://openrouter.ai/api/v1
 LLM_API_KEY=your_llm_api_key_here
 LLM_MODEL=llama-3.3-70b-versatile
 RPC_URL=http://127.0.0.1:8545
@@ -144,6 +160,7 @@ SIMIDR_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
 ESCROW_CONTRACT_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 PLATFORM_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ARBITER_PRIVATE_KEY=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+AUTO_RELEASE_INTERVAL_SECONDS=60
 ```
 
 ---
