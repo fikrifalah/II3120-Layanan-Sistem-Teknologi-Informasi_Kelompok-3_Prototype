@@ -73,7 +73,7 @@ export default function FreelancerView({ name, account, token, onLogout }: { nam
       <img src="/brand/gigly-logo.png" alt="Gigly" />
       <nav aria-label="Freelancer workspace">{navigation.map(({ label, icon: Icon }) =>
         <button key={label} aria-current={label === page ? 'page' : undefined} onClick={() => open(label)}
-          disabled={label === 'Messages' || label === 'Disputes'}><Icon />{label}{label === 'Messages' && <b className="count">3</b>}</button>)}
+          disabled={label === 'Messages' || label === 'Disputes'}><Icon />{label}</button>)}
         <hr /><button disabled><Settings />Settings</button><button onClick={onLogout}><LogOut />Log out</button>
       </nav>
     </aside>

@@ -67,7 +67,7 @@ function CaseCard({ dispute, selected, onSelect }: {
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`card w-full p-4 text-left transition-[border-color,box-shadow,background-color] hover:border-brand/40 hover:shadow-lift ${
+      className={`card w-full p-4 text-left transition-[border-color,box-shadow,background-color] hover:border-line-control/50 ${
         selected ? 'border-brand bg-brand-soft/30 shadow-card' : ''
       }`}
     >

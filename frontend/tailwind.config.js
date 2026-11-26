@@ -12,8 +12,8 @@ export default {
       colors: {
         brand: {
           DEFAULT: '#4A3FC1', // brand.primary
-          hover: '#352B94', // brand.primary.hover
-          soft: '#EEEBFF', // brand.primary.soft
+          hover: '#3A31A0', // brand.primary.hover
+          soft: '#F0EFFA', // brand.primary.soft
         },
         accent: {
           DEFAULT: '#F8982B', // brand.accent — never under white text (fails contrast)
@@ -21,22 +21,22 @@ export default {
           soft: '#FFF1DB', // brand.accent.soft
         },
         surface: '#FFFFFF', // surface.default
-        canvas: '#F8F7FC', // surface.canvas
+        canvas: '#F6F6F8', // surface.canvas
         ink: {
-          DEFAULT: '#17152B', // text.primary
-          muted: '#615D72', // text.secondary
+          DEFAULT: '#1A1A22', // text.primary
+          muted: '#5E5F6B', // text.secondary
         },
         line: {
-          DEFAULT: '#E2DFEA', // border.subtle
-          control: '#777386', // border.control
+          DEFAULT: '#E3E4E9', // border.subtle
+          control: '#7A7B88', // border.control
         },
         danger: { DEFAULT: '#B42318', soft: '#FEF3F2' }, // feedback.error
         success: { DEFAULT: '#067647', soft: '#ECFDF3' },
         info: { DEFAULT: '#175CD3', soft: '#EFF8FF' },
-        disabled: { bg: '#E2DFEA', text: '#615D72' },
+        disabled: { bg: '#E3E4E9', text: '#5E5F6B' },
       },
       fontFamily: {
-        sans: ['"Inter Variable"', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Figtree', '"Inter Variable"', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         // Typography scale from Board 01A (mobile values; desktop steps up via md: prefix)
@@ -53,13 +53,13 @@ export default {
       },
       borderRadius: {
         sm: '8px',
-        md: '12px',
-        lg: '16px',
+        md: '10px',
+        lg: '14px',
       },
       boxShadow: {
-        card: '0 1px 2px rgba(23, 21, 43, 0.04)',
-        lift: '0 10px 28px -12px rgba(23, 21, 43, 0.18)',
-        float: '0 16px 40px -12px rgba(23, 21, 43, 0.24)',
+        card: 'none',
+        lift: '0 4px 14px -6px rgba(26, 26, 34, 0.14)',
+        float: '0 12px 32px -10px rgba(26, 26, 34, 0.22)',
         focus: '0 0 0 3px #FFFFFF, 0 0 0 5px #4A3FC1',
       },
       spacing: { sidebar: '248px' },

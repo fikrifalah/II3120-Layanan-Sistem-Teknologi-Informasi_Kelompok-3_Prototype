@@ -12,7 +12,7 @@ project-root/
 ├── .gitignore
 ├── package.json                         # Root one-command dev runner (concurrently)
 ├── scripts/
-│   └── run-backend.js                   # Cross-platform launcher for backend/.venv uvicorn
+│   └── run-backend.js                   # Launches the Python/FastAPI backend via Uvicorn
 ├── blockchain/                          # Hardhat + Solidity (^0.8.20) + OpenZeppelin
 │   ├── hardhat.config.js                # Hardhat local network config (chainId 31337)
 │   ├── package.json                     # hardhat, @nomicfoundation/hardhat-toolbox, @openzeppelin/contracts

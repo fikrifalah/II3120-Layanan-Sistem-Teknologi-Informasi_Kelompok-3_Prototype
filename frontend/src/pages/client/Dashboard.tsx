@@ -107,8 +107,7 @@ export default function Dashboard() {
                     <Link
                       to={a.to}
                       className={cn(
-                        'group flex items-center gap-4 rounded-md border px-4 py-3.5 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lift',
-                        a.tone === 'warning' ? 'border-accent/30 bg-accent-soft' : 'border-brand/10 bg-brand-soft/70',
+                        'group card-link flex items-center gap-4 px-4 py-3.5',
                       )}
                     >
                       <span className={cn('shrink-0', a.tone === 'warning' ? 'text-accent-strong' : 'text-brand')} aria-hidden>
@@ -118,7 +117,7 @@ export default function Dashboard() {
                         <span className="block text-small font-semibold text-ink">{a.title}</span>
                         <span className="block truncate text-caption text-ink-muted">{a.detail}</span>
                       </span>
-                      <span className="hidden h-9 items-center rounded-sm border border-brand/60 bg-surface px-3.5 text-small font-semibold text-brand transition-colors group-hover:bg-brand group-hover:text-white sm:inline-flex">
+                      <span className="hidden h-9 items-center rounded-sm border border-line px-3.5 text-small font-semibold text-ink transition-colors group-hover:border-brand group-hover:text-brand sm:inline-flex">
                         {a.cta}
                       </span>
                       <ChevronRight className="size-5 text-ink-muted transition-transform duration-200 group-hover:translate-x-0.5 sm:hidden" aria-hidden />
