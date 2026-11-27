@@ -18,7 +18,7 @@ project-root/
 │   ├── package.json                     # hardhat, @nomicfoundation/hardhat-toolbox, @openzeppelin/contracts
 │   ├── contracts/
 │   │   ├── SIMIDR.sol                   # ERC-20 simulated token (SIM-IDR) + testing faucet
-│   │   └── Escrow.sol                   # Multi-milestone escrow + 5-day auto-release + handover + 3-way arbiter verdict
+│   │   └── Escrow.sol                   # Multi-milestone escrow + 5-day auto-release + revision request + handover + 3-way arbiter verdict
 │   ├── scripts/
 │   │   └── deploy.js                    # Local Hardhat deployment script
 │   └── test/
@@ -67,11 +67,13 @@ Each module is isolated into dedicated files so team members can build independe
 | Module | File Path(s) | SoaML Component / Role | Responsibilities | Assignee |
 | :--- | :--- | :--- | :--- | :--- |
 | **1. AI Matching** | `backend/services/ai_matching/` | `AIMatchingProvider` (`MatchingServiceContract`) | CV indexing, anonymized candidate recommendation & scoring, freelancer profile, seed data. | Krisna (`@yaisnaa`) |
-| **2. Smart Contracts** | `blockchain/`<br>`backend/services/smart_contract/service.py` | `SmartContractProvider` (`EscrowPaymentContract`) | `SIM-IDR` token, `Escrow.sol` (milestones, 5-day auto-release, handover, arbiter verdict), deployment, `web3.py` bridge. | Fikri (`@fikrifalah`) |
-| **3. Dispute Handling & Orchestrator** | `backend/services/dispute_handler/`<br>`backend/services/orchestrator/`<br>`backend/migrations/` | `DisputeResolutionContract`<br>`PlatformOrchestrator` & `MilestoneStatusNotification` | Disputes, evidence hashing, on-chain freeze & verdict; contracts, escrow lock, milestone submit/approve, files, wallet, auto-release; DB migrations. | Daniel (`@danarrigo`) |
-| **4. Freelancer Interface** | `frontend/src/pages/Freelancer*.tsx`, `ReceivedInvitations.tsx` | `FreelancerParticipant` | Invitations, profile, project workspace & deliverable submission. | Dani (`@LaurensiusDani`) |
-| **5. Client Interface** | `frontend/src/pages/ClientView.tsx`, `frontend/src/pages/client/` | `ClientParticipant` | Job posting, AI match selection, contract builder, escrow funding, approvals. | Kenny (`@kaem-nyoba`) |
-| **6. Arbiter Interface** | `frontend/src/pages/ArbiterView.tsx` | `ArbiterParticipant` | Dispute review & verdict. | Jeko |
+| **2. Smart Contracts** | `blockchain/`<br>`backend/services/smart_contract/service.py` | `SmartContractProvider` (`EscrowPaymentContract`) | `SIM-IDR` token, `Escrow.sol` (milestones, 5-day auto-release, revision request, handover, arbiter verdict), deployment, `web3.py` bridge. | Fikri (`@fikrifalah`) |
+| **3. Dispute Handling & Orchestrator** | `backend/services/dispute_handler/`<br>`backend/services/orchestrator/`<br>`backend/migrations/` | `DisputeResolutionContract`<br>`PlatformOrchestrator` & `MilestoneStatusNotification` | Disputes, evidence hashing, on-chain freeze & verdict; contracts (freelancer acceptance), escrow lock, milestone submit/revision/approve, files, wallet, auto-release; DB migrations. | Daniel (`@danarrigo`) |
+| **4. Freelancer Interface** | `frontend/src/pages/Freelancer*.tsx`, `ReceivedInvitations.tsx` | `FreelancerParticipant` | Invitations, profile, contract acceptance, project workspace, deliverable submission & resubmission, disputing a revision request. | Dani (`@LaurensiusDani`) |
+| **5. Client Interface** | `frontend/src/pages/ClientView.tsx`, `frontend/src/pages/client/` | `ClientParticipant` | Job posting, AI match selection, contract builder, escrow funding, approvals & revision requests. | Kenneth (`@kaem-nyoba`) |
+| **6. Arbiter Interface** | `frontend/src/pages/ArbiterView.tsx` | `ArbiterParticipant` | Dispute review & verdict; PostgreSQL setup. | Jacko (`@jackoluciano`) |
+
+**Cross-module change: contract acceptance & revision flow (PR #12, Daniel).** To match the Deliverable 2 BPMN, the freelancer must accept the contract before escrow is locked, and a rejected milestone goes through a revision request before any dispute. A client can dispute only revised work it still rejects; a freelancer can dispute only a revision request. This change touched other modules: `Escrow.sol` (`requestRevision`, module 2), `FreelancerProjects.tsx` / `projectWork.ts` (accept, resubmit, dispute buttons, module 4), and `MilestoneReview.tsx` / `store.tsx` / `clientContracts.ts` (request revision, module 5). Module owners remain responsible for these files.
 
 ---
 
@@ -209,4 +211,5 @@ Review the generated file before committing it; autogenerate can need manual edi
 
 ### Quick Reminders
 - **Restarted `npm run dev`?** The local Hardhat node resets to block 0 on restart — just re-run `npm run deploy` in a second terminal (contract addresses stay identical on a fresh node).
+- **Pulled a change to `Escrow.sol`?** Re-run `npm run deploy` so the backend uses the new contract ABI.
 - **Prefer separate terminals?** Run `npm run blockchain`, `npm run backend`, and `npm run frontend` individually from the project root.

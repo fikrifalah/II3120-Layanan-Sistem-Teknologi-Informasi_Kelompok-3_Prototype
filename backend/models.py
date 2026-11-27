@@ -31,7 +31,8 @@ class Contract(SQLModel, table=True):
     # contractId di Escrow.sol (hasil createAndLockEscrow); None = escrow belum dikunci.
     onchain_contract_id: Optional[int] = None
     total_amount: float  # SIM-IDR
-    status: str = "draft"  # draft | active | completed | cancelled
+    # draft (menunggu persetujuan freelancer) | agreed (disetujui, menunggu dana) | active | completed
+    status: str = "draft"
     scope: str = ""
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
@@ -39,6 +40,7 @@ class Contract(SQLModel, table=True):
     terms_json: str = ""
     contract_hash: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    accepted_at: Optional[datetime] = None  # freelancer menyetujui kontrak
 
 
 class Milestone(SQLModel, table=True):
@@ -51,10 +53,13 @@ class Milestone(SQLModel, table=True):
     due_at: Optional[datetime] = None
     deliverable_url: Optional[str] = None
     deliverable_hash: Optional[str] = None
-    # pending | in_progress | under_review | disputed | released | refunded | split
+    # pending | in_progress | under_review | revision_required | disputed | released | refunded | split
     status: str = "pending"
     submitted_at: Optional[datetime] = None
     settled_at: Optional[datetime] = None
+    # Permintaan perbaikan dari client; sengketa baru boleh diajukan setelah perbaikan tidak disepakati.
+    revision_count: int = Field(default=0, sa_column_kwargs={"server_default": "0"})
+    revision_note: Optional[str] = None
 
 
 class Escrow(SQLModel, table=True):
@@ -65,6 +70,7 @@ class Escrow(SQLModel, table=True):
     status: str = "active"  # active | closed
     funded_at: Optional[datetime] = None
     close_tx_hash: Optional[str] = None
+    closed_at: Optional[datetime] = None
 
 
 class Dispute(SQLModel, table=True):

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Activity,
+  AlertTriangle,
   CheckCircle2,
   Circle,
   Coins,
@@ -39,9 +40,11 @@ import {
   type DeliveryDraft,
 } from '../services/delivery'
 import {
+  acceptContractApi,
   amount,
   defaultMilestone,
   downloadApiFile,
+  raiseDisputeApi,
   settled,
   statusLabel,
   submitApi,
@@ -339,6 +342,70 @@ function DeliveryForm({
   )
 }
 
+/** Sengketa atas permintaan perbaikan yang tidak disetujui freelancer (dana milestone dibekukan). */
+function DisputeDialog({ m, token, close, reload }: { m: WorkMilestone; token: string; close: () => void; reload: () => void }) {
+  const [reason, setReason] = useState('')
+  const [files, setFiles] = useState<File[]>([])
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  async function send() {
+    setBusy(true)
+    setMessage('')
+    try {
+      await raiseDisputeApi(token, m.id, reason.trim(), files)
+      close()
+      reload()
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Dispute could not be raised. Please retry.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Dialog
+      open
+      onClose={close}
+      title={'Dispute revision request for Milestone ' + m.seq + '?'}
+      footer={
+        <>
+          <Button variant="quiet" onClick={close}>
+            Cancel
+          </Button>
+          <Button variant="danger" loading={busy} disabled={reason.trim().length < 10} onClick={() => void send()}>
+            Raise dispute
+          </Button>
+        </>
+      }
+    >
+      <fieldset disabled={busy} className="grid min-w-0 gap-4">
+        <p>
+          The milestone funds stay frozen in escrow until an arbiter rules. Explain why the delivered work already meets
+          the agreed criteria.
+        </p>
+        <Field label="Reason" hint="At least 10 characters">
+          {({ id, describedBy }) => (
+            <Textarea id={id} aria-describedby={describedBy} rows={4} maxLength={4000} value={reason} onChange={(e) => setReason(e.target.value)} />
+          )}
+        </Field>
+        <Field label="Evidence (optional)" hint="Up to 5 files">
+          {({ id, describedBy }) => (
+            <input
+              id={id}
+              aria-describedby={describedBy}
+              type="file"
+              multiple
+              accept={acceptedFiles}
+              className="w-full text-small text-ink-muted file:mr-3 file:h-11 file:cursor-pointer file:rounded-sm file:border-0 file:bg-brand-soft file:px-4 file:text-small file:font-semibold file:text-brand"
+              onChange={(e) => setFiles(Array.from(e.target.files || []).slice(0, 5))}
+            />
+          )}
+        </Field>
+        {message && <Alert tone="danger">{message}</Alert>}
+      </fieldset>
+    </Dialog>
+  )
+}
+
 export default function FreelancerProjects({
   data,
   id,
@@ -357,6 +424,8 @@ export default function FreelancerProjects({
   const navigate = useNavigate()
   const location = useLocation()
   const [dialog, setDialog] = useState('')
+  const [accepting, setAccepting] = useState(false)
+  const [acceptError, setAcceptError] = useState('')
   const selected = mid
     ? data.work?.milestones.find((x) => x.id === mid)
     : data.work && defaultMilestone(data.work.milestones)
@@ -471,6 +540,43 @@ export default function FreelancerProjects({
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
           <Tabs label="Project sections" tabs={sections} value={tab} onChange={(name) => setParams({ tab: name })} />
+          {w.canAccept && (
+            <section className="card mt-4 border-brand bg-brand-soft p-5 md:p-6" aria-label="Contract approval">
+              <h2 className="text-h3">Review and accept the contract</h2>
+              <p className="mt-1 text-small text-ink-muted">
+                The client has drafted the contract. Check the scope, milestones and acceptance criteria. The client can
+                lock escrow funds only after you accept.
+              </p>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <Button variant="secondary" icon={<FileText className="size-4" aria-hidden />} onClick={() => setDialog('contract')}>
+                  View contract
+                </Button>
+                <Button
+                  icon={<CheckCircle2 className="size-4" aria-hidden />}
+                  loading={accepting}
+                  onClick={async () => {
+                    setAccepting(true)
+                    setAcceptError('')
+                    try {
+                      await acceptContractApi(token, w.contractId)
+                      data.reload()
+                    } catch (e) {
+                      setAcceptError(e instanceof Error ? e.message : 'Could not accept the contract.')
+                    } finally {
+                      setAccepting(false)
+                    }
+                  }}
+                >
+                  Accept contract
+                </Button>
+              </div>
+              {acceptError && (
+                <Alert tone="danger" className="mt-3">
+                  {acceptError}
+                </Alert>
+              )}
+            </section>
+          )}
           <section className="card mt-4 p-5 md:p-6">
             {tab === 'Files' ? (
               <>
@@ -491,7 +597,11 @@ export default function FreelancerProjects({
               </>
             ) : m ? (
               <>
-                <h2 className="text-h2">{m.eligible ? 'Submit Milestone ' + m.seq + ' Deliverable' : statusLabel(m.status)}</h2>
+                <h2 className="text-h2">
+                  {m.eligible
+                    ? (m.status === 'revision_required' ? 'Resubmit' : 'Submit') + ' Milestone ' + m.seq + ' Deliverable'
+                    : statusLabel(m.status)}
+                </h2>
                 <p className="mt-1 text-small text-ink-muted">
                   {m.eligible
                     ? 'Upload your deliverable for milestone completion.'
@@ -513,10 +623,27 @@ export default function FreelancerProjects({
                     <Coins className="mt-0.5 size-5 shrink-0 text-accent-strong" aria-hidden />
                     <p className="text-small">
                       <span className="tabular block font-semibold">{amount(m.amount)}</span>
-                      <span className="text-caption text-ink-muted">{settled(m.status) ? statusLabel(m.status) : 'In escrow'}</span>
+                      <span className="text-caption text-ink-muted">{settled(m.status) ? statusLabel(m.status) : w.fundedAt ? 'In escrow' : 'Not funded yet'}</span>
                     </p>
                   </div>
                 </div>
+                {m.revisionNote && (
+                  <div role="note" className="my-3 flex flex-wrap items-start gap-2.5 rounded-md border border-accent/40 bg-accent-soft p-3">
+                    <AlertTriangle className="mt-0.5 size-[18px] shrink-0 text-accent-strong" aria-hidden />
+                    <div className="min-w-0 flex-1 text-small">
+                      <p className="font-semibold">Revision requested by the client</p>
+                      <p className="my-1 whitespace-pre-wrap">{m.revisionNote}</p>
+                      <p className="text-caption text-ink-muted">
+                        Resubmit the improved deliverable, or raise a dispute if you disagree with the request.
+                      </p>
+                    </div>
+                    {m.canDispute && (
+                      <Button variant="danger" size="sm" className="shrink-0" onClick={() => setDialog('dispute')}>
+                        Raise dispute
+                      </Button>
+                    )}
+                  </div>
+                )}
                 {m.eligible ? (
                   <DeliveryForm
                     key={w.contractId + m.id}
@@ -538,6 +665,10 @@ export default function FreelancerProjects({
                   <p className="text-small text-ink-muted">
                     {m.transaction
                       ? 'Submission confirmation is pending.'
+                      : m.status === 'disputed'
+                      ? 'Funds for this milestone are frozen until the arbiter rules on the dispute.'
+                      : !w.fundedAt
+                      ? 'Work starts once you accept the contract and the client funds the escrow.'
                       : 'Submission is unavailable at this milestone’s current status.'}{' '}
                     <button type="button" className="link" onClick={data.reload}>
                       Refresh status
@@ -592,7 +723,7 @@ export default function FreelancerProjects({
                 {date(w.start)} – {date(w.end)}
               </KeyValue>
               <KeyValue label="Total contract">{amount(w.total)}</KeyValue>
-              <KeyValue label="Escrow (locked)">{amount(w.locked)}</KeyValue>
+              <KeyValue label="Escrow (locked)">{w.fundedAt ? amount(w.locked) : 'Not funded yet'}</KeyValue>
             </dl>
             <button type="button" className="link text-small" onClick={() => setDialog('contract')}>
               View contract
@@ -611,6 +742,9 @@ export default function FreelancerProjects({
         <p className="my-3">{w.scope}</p>
         <p className="font-semibold text-ink">{amount(w.total)}</p>
       </Dialog>
+      {dialog === 'dispute' && m && (
+        <DisputeDialog m={m} token={token} close={() => setDialog('')} reload={data.reload} />
+      )}
       {dialog === 'messages' && w.invitationId && (
         <InvitationMessages id={w.invitationId} sender="freelancer" close={() => setDialog('')} />
       )}

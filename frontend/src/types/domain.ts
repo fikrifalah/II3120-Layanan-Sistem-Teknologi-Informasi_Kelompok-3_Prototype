@@ -156,6 +156,8 @@ export interface Milestone {
   submissions: Submission[]
   reviewDeadline?: string
   revisionNote?: string
+  /** Berapa kali client meminta perbaikan; sengketa client baru boleh setelah >= 1. */
+  revisionCount?: number
   disputeReason?: string
   releasedAt?: string
   /** Pembagian dana saat milestone selesai (backend): ke freelancer dan kembali ke client. */
