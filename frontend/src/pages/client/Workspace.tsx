@@ -7,7 +7,9 @@ import { nextAction } from '../../lib/nextAction'
 import { usePageTitle } from '../../lib/usePageTitle'
 import { cn } from '../../lib/cn'
 import type { Contract, Project } from '../../types/domain'
-import { LinkButton } from '../../components/ui/Button'
+import { Button, LinkButton } from '../../components/ui/Button'
+import { Alert } from '../../components/ui/Feedback'
+import { Select } from '../../components/ui/Field'
 import { ContractStatusBadge, MilestoneStatusBadge, ProjectStatusBadge, SkillChip } from '../../components/ui/Badge'
 import { Breadcrumb, CardTitle, KeyValue, Progress, StatCard, Tabs } from '../../components/ui/Display'
 import { isSettled, paidAmount } from '../../services/clientContracts'
@@ -125,6 +127,57 @@ function MilestoneList({ contract }: { contract: Contract }) {
   )
 }
 
+/** Freelancer menyerah (demo): pilih pengganti dari undangan yang sudah diterima, lalu alihkan milestone tersisa. */
+function ReassignPanel({ projectId, contract }: { projectId: string; contract: Contract }) {
+  const store = useStore()
+  const options = store.invitations.filter(
+    (i) => i.projectId === projectId && i.status === 'accepted' && i.backendId && i.candidateId !== contract.candidateId,
+  )
+  const [choice, setChoice] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const selected = choice || options[0]?.id || ''
+  const reassign = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await store.reassignContract(contract.id, selected)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not reassign.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Alert tone="danger" title="Freelancer withdrew from this project" className="mb-6">
+      <p>Remaining milestones and their escrow funds are on hold. Invite a replacement, then reassign the remaining milestones.</p>
+      {options.length ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Select value={selected} onChange={(e) => setChoice(e.target.value)} className="h-10 max-w-xs" aria-label="Replacement freelancer">
+            {options.map((i) => (
+              <option key={i.id} value={i.id}>
+                {store.displayName(projectId, i.candidateId)}
+              </option>
+            ))}
+          </Select>
+          <Button loading={busy} onClick={reassign}>
+            Reassign remaining milestones
+          </Button>
+        </div>
+      ) : (
+        <LinkButton to={`/client/projects/${projectId}/matches`} size="sm" className="mt-3">
+          Invite a replacement
+        </LinkButton>
+      )}
+      {error && (
+        <p role="alert" className="mt-2 text-small text-danger">
+          {error}
+        </p>
+      )}
+    </Alert>
+  )
+}
+
 export default function Workspace() {
   const { projectId = '' } = useParams()
   const store = useStore()
@@ -190,6 +243,7 @@ export default function Workspace() {
   return (
     <div>
       {header}
+      {contract.withdrawnAt && contract.status === 'active' && <ReassignPanel projectId={projectId} contract={contract} />}
 
       <section aria-label="Funds" className="stagger mb-6 grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
         <StatCard icon={<Coins className="size-5" />} label="Contract value" value={formatSim(total)} />

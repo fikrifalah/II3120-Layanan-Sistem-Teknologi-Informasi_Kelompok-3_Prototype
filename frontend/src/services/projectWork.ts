@@ -48,6 +48,10 @@ export interface Work {
   invitationId?: string
   /** Kontrak menunggu persetujuan freelancer sebelum client mengunci dana. */
   canAccept?: boolean
+  /** Freelancer boleh menyerah (demo); client lalu mengalihkan milestone tersisa. */
+  canWithdraw?: boolean
+  /** Freelancer sudah menyerah dan menunggu client mengalihkan milestone. */
+  withdrawn?: boolean
 }
 export const statusLabel = (s: string) =>
   ({
@@ -122,7 +126,7 @@ interface ApiMilestone {
 interface ApiWork {
   project: ApiProject
   milestones: ApiMilestone[]
-  contract: { id: number; status: string; total_amount: string; allowed_actions?: string[] }
+  contract: { id: number; status: string; total_amount: string; allowed_actions?: string[]; withdrawn_at?: string | null }
   agreement: { version: number; terms: { scope: string; scope_summary?: string } }
   escrow: { status: string; remaining_locked_amount: string; funded_at: string }
   recent_activity: { summary: string; created_at: string }[]
@@ -276,6 +280,8 @@ export function useProjectWork(token: string, id?: string, mid?: string, enabled
           events: w.recent_activity.map((e) => ({ text: e.summary, at: e.created_at })),
           files: w.files.map(apiFile),
           canAccept: w.contract.allowed_actions?.includes('accept'),
+          canWithdraw: w.contract.allowed_actions?.includes('withdraw'),
+          withdrawn: !!w.contract.withdrawn_at,
         }
       }
       if (!controller.signal.aborted) setRemote({ key, projects, work })
@@ -318,6 +324,10 @@ async function postApi(path: string, token: string, body: BodyInit, json = false
 /** Freelancer menyetujui kontrak (ruang lingkup, milestone, kriteria) sebelum dana dikunci client. */
 export const acceptContractApi = (token: string, contractId: string) =>
   postApi('/contracts/' + encodeURIComponent(contractId) + '/accept', token, '{}', true)
+
+/** Freelancer menyerah (demo): milestone tersisa menunggu client mengalihkannya ke freelancer lain. */
+export const withdrawContractApi = (token: string, contractId: string) =>
+  postApi('/contracts/' + encodeURIComponent(contractId) + '/withdraw', token, '{}', true)
 
 /** Sengketa atas permintaan perbaikan yang tidak disetujui freelancer, beserta bukti opsional. */
 export function raiseDisputeApi(token: string, milestoneId: string, reason: string, evidence: File[]) {

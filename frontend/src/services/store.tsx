@@ -26,6 +26,7 @@ import {
   fetchWalletApi,
   lockEscrowApi,
   raiseDisputeApi,
+  reassignContractApi,
   requestRevisionApi,
   walletFrom,
 } from './clientContracts'
@@ -56,6 +57,7 @@ interface Actions {
   /** Client menolak hasil dan meminta perbaikan; dana tetap terkunci dan timer review berhenti. */
   requestRevision: (contractId: string, milestoneId: string, note: string) => Promise<void>
   raiseDispute: (contractId: string, milestoneId: string, reason: string) => Promise<void>
+  reassignContract: (contractId: string, invitationId: string) => Promise<void>
   markAllRead: () => void
   resetDemo: () => void
 }
@@ -304,7 +306,10 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         await navigator.locks.request('gigly-invitations', async () => {
           const latest = demoWorkspace()
           const candidate = latest.candidates[projectId]?.find(c => c.id === candidateId)
-          if (!candidate?.eligible || !['matching', 'inviting'].includes(latest.projects.find(p => p.id === projectId)?.status ?? '')) throw new Error('An eligible match on an open project is required.')
+          const project = latest.projects.find(p => p.id === projectId)
+          // Freelancer menyerah (demo): proyek aktif boleh mengundang pengganti untuk milestone tersisa.
+          const replacing = !!latest.contracts.find(c => c.id === project?.contractId && c.status === 'active')?.withdrawnAt
+          if (!candidate?.eligible || !(['matching', 'inviting'].includes(project?.status ?? '') || replacing)) throw new Error('An eligible match on an open project is required.')
           if (latest.invitations.some(i => i.projectId === projectId && i.candidateId === candidateId && i.status === 'pending')) throw new Error('Invitation already pending.')
           const profile = candidateId === demoRecipient && mockProfileEnabled ? readDemoProfile() : null
           if (profile && (profileSignature(profile) !== (candidate.profileSignature ?? profileSignature()) || !latest.projects.find(p => p.id === projectId)!.requiredSkills.every(s => profile.skills.includes(s)))) throw new Error('Profile changed. Run matching again.')
@@ -512,6 +517,17 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         const c = stateRef.current.contracts.find((x) => x.id === contractId)!
         const m = c.milestones.find((x) => x.id === milestoneId)!
         log(`Dispute raised on Milestone ${m.seq}; ${formatSim(m.amount)} frozen`, 'danger', c.projectId)
+      },
+
+      async reassignContract(contractId, invitationId) {
+        const c = demoWorkspace().contracts.find((x) => x.id === contractId)
+        const inv = demoWorkspace().invitations.find((i) => i.id === invitationId)
+        if (!c?.backendId || !inv?.backendId) throw new Error('This contract or invitation is not recorded yet.')
+        await reassignContractApi(c.backendId, inv.backendId)
+        patchContract(contractId, (x) => ({ ...x, candidateId: inv.candidateId, withdrawnAt: undefined }))
+        patchProject(c.projectId, { hiredCandidateId: inv.candidateId })
+        await syncContract(contractId)
+        log('Remaining milestones reassigned to the replacement freelancer', 'brand', c.projectId)
       },
 
       markAllRead() {

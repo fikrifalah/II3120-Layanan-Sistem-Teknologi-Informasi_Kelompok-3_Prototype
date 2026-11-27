@@ -54,6 +54,7 @@ export interface ApiContract {
   contract_hash: string
   escrow: { smart_contract_address: string | null; transaction_hash: string | null; funded_at: string | null } | null
   milestones: ApiMilestone[]
+  withdrawn_at?: string | null
 }
 interface ApiWallet { address: string; available_balance: string | null; locked_in_escrow: string }
 
@@ -105,6 +106,7 @@ export function applyRemote(local: Contract, remote: ApiContract): Contract {
     escrowAddress: remote.escrow?.smart_contract_address ?? local.escrowAddress,
     fundingTxHash: remote.escrow?.transaction_hash ?? local.fundingTxHash,
     startedAt: remote.escrow?.funded_at ?? local.startedAt,
+    withdrawnAt: remote.withdrawn_at ?? undefined,
     milestones: local.milestones.map((m): Milestone => {
       const r = remote.milestones.find((x) => x.sequence === m.seq)
       if (!r) return m
@@ -156,6 +158,10 @@ export const approveMilestoneApi = async (milestoneId: number) =>
 
 export const requestRevisionApi = async (milestoneId: number, notes: string) =>
   (await request<{ data: { transaction_hash: string } }>('POST', `/milestones/${milestoneId}/request-revision`, { notes })).data
+
+/** Alihkan milestone tersisa ke freelancer pengganti (backend: hanya setelah freelancer menyerah). */
+export const reassignContractApi = async (contractId: number, invitationId: number) =>
+  (await request<{ data: { transaction_hash: string } }>('POST', `/escrow/${contractId}/reassign`, { invitation_id: invitationId })).data
 
 export const closeContractApi = async (contractId: number) =>
   (await request<{ data: { transaction_hash: string } }>('POST', `/escrow/${contractId}/close`, {})).data

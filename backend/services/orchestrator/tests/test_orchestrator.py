@@ -306,7 +306,10 @@ def test_reassign_moves_remaining_milestones_to_replacement(env):
     contract_id = _funded(env)
     m1 = _milestones(env)[0]
     assert _submit(env, m1, repository_url="https://github.com/x/y").status_code == 200
-    r = env["call"]("POST", f"/escrow/{contract_id}/reassign", "client", json={"invitation_id": env["ids"]["inv_pengganti"]})
+    body = {"invitation_id": env["ids"]["inv_pengganti"]}
+    assert env["call"]("POST", f"/escrow/{contract_id}/reassign", "client", json=body).status_code == 409  # belum menyerah
+    assert env["call"]("POST", f"/contracts/{contract_id}/withdraw", "freelancer").status_code == 200
+    r = env["call"]("POST", f"/escrow/{contract_id}/reassign", "client", json=body)
     assert r.status_code == 200, r.text
     d = r.json()["data"]
     assert (d["reassigned_milestones"], d["new_freelancer"]["name"]) == (2, "pengganti")
@@ -316,8 +319,10 @@ def test_reassign_moves_remaining_milestones_to_replacement(env):
     assert (m1_new["status"], m1_new["current_submission"], m2_new["status"]) == ("in_progress", None, "pending")
     with Session(env["engine"]) as s:
         assert s.get(Submission, 1).status == "superseded"
-    same = env["call"]("POST", f"/escrow/{contract_id}/reassign", "client", json={"invitation_id": env["ids"]["inv_pengganti"]})
-    assert same.status_code == 422
+    assert env["call"]("POST", f"/escrow/{contract_id}/reassign", "client", json=body).status_code == 409  # pengganti aktif
+    assert env["call"]("POST", f"/contracts/{contract_id}/withdraw", "pengganti").status_code == 200
+    same = env["call"]("POST", f"/escrow/{contract_id}/reassign", "client", json=body)
+    assert same.status_code == 422  # pengganti harus berbeda dari freelancer sekarang
 
 
 def test_auto_release_after_review_timeout(env):

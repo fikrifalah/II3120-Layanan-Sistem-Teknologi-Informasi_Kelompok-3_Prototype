@@ -202,7 +202,7 @@ def _submission_view(session: Session, sub: Submission) -> dict:
 
 
 def _allowed_actions(m: Milestone, contract: Contract, user: User) -> list[str]:
-    if contract.status != "active":
+    if contract.status != "active" or (contract.withdrawn_at and user.id == contract.freelancer_id):
         return []
     actions = []
     if user.id == contract.freelancer_id and m.status in ("in_progress", "revision_required"):
@@ -260,6 +260,10 @@ def _contract_actions(contract: Contract, user: User) -> list[str]:
         return ["accept"]
     if contract.status == "agreed" and user.id == contract.client_id:
         return ["fund"]
+    if contract.status == "active" and user.id == contract.freelancer_id and not contract.withdrawn_at:
+        return ["withdraw"]
+    if contract.status == "active" and user.id == contract.client_id and contract.withdrawn_at:
+        return ["reassign"]
     return []
 
 
@@ -269,7 +273,8 @@ def _contract_view(session: Session, contract: Contract, user: User) -> dict:
         "total_amount": wf.amount_str(contract.total_amount), "scope": contract.scope,
         "start_at": wf.iso(contract.start_at), "end_at": wf.iso(contract.end_at),
         "contract_hash": contract.contract_hash, "terms": json.loads(contract.terms_json or "{}"),
-        "accepted_at": wf.iso(contract.accepted_at), "allowed_actions": _contract_actions(contract, user),
+        "accepted_at": wf.iso(contract.accepted_at), "withdrawn_at": wf.iso(contract.withdrawn_at),
+        "allowed_actions": _contract_actions(contract, user),
         "client": _person(session.get(User, contract.client_id)),
         "freelancer": _person(session.get(User, contract.freelancer_id)),
         "escrow": _escrow_view(session, contract),
@@ -359,6 +364,26 @@ def accept_contract(contract_id: int, user: User = Depends(current_user), sessio
                      "accepted_at": wf.iso(contract.accepted_at), "contract": _contract_view(session, contract, user)}}
 
 
+@router.post("/contracts/{contract_id}/withdraw")
+def withdraw_from_contract(contract_id: int, user: User = Depends(current_user),
+                           session: Session = Depends(get_db)) -> dict:
+    """Freelancer menyerah (khusus demo): milestone tersisa menunggu client mengalihkannya ke freelancer lain."""
+    contract = _contract(session, contract_id, user)
+    if user.id != contract.freelancer_id:
+        raise HTTPException(status_code=403, detail="Hanya freelancer kontrak ini yang boleh menyerah.")
+    _require_active(contract)
+    if contract.withdrawn_at:
+        raise HTTPException(status_code=409, detail="Freelancer sudah menyerah dari kontrak ini.")
+    contract.withdrawn_at = wf.now()
+    session.add(contract)
+    wf.log_activity(session, contract.id,
+                    f"{user.name} withdrew from the project; remaining milestones await reassignment")
+    session.commit()
+    session.refresh(contract)
+    return {"data": {"contract_id": contract.id, "withdrawn_at": wf.iso(contract.withdrawn_at),
+                     "contract": _contract_view(session, contract, user)}}
+
+
 # ------------------------------------------------------------------ escrow (IEscrowService)
 
 @router.post("/escrow/lock", status_code=201)
@@ -411,6 +436,8 @@ def reassign_remaining_milestones(contract_id: int, req: ReassignRequest, user: 
     """reassignRemainingMilestones: alihkan milestone tersisa ke freelancer pengganti tanpa membuka dana."""
     contract = _own_contract(session, contract_id, user)
     _require_active(contract)
+    if not contract.withdrawn_at:
+        raise HTTPException(status_code=409, detail="Reassign hanya bisa setelah freelancer menyerah dari proyek.")
     inv = _accepted_invitation(session, req.invitation_id, user)
     if inv.job_id != contract.job_id:
         raise HTTPException(status_code=422, detail="Undangan pengganti harus untuk job yang sama.")
@@ -436,6 +463,7 @@ def reassign_remaining_milestones(contract_id: int, req: ReassignRequest, user: 
             session.add(sub)
     previous = session.get(User, contract.freelancer_id)
     contract.freelancer_id = inv.freelancer_id
+    contract.withdrawn_at = None
     session.add(contract)
     newcomer = session.get(User, inv.freelancer_id)
     newcomer.wallet_address = new_wallet
@@ -497,6 +525,8 @@ def submit_milestone_deliverable(
         if replay:
             return {"data": _milestone_view(session, milestone, contract, user)}
     _require_active(contract)
+    if contract.withdrawn_at:
+        raise HTTPException(status_code=409, detail="Kamu sudah menyerah dari proyek ini.")
     if milestone.status not in ("in_progress", "revision_required"):
         raise HTTPException(status_code=409, detail=f"Milestone berstatus {milestone.status}, bukan in_progress.")
     resubmission = milestone.status == "revision_required"
@@ -634,7 +664,8 @@ def project_workspace(project_id: int, user: User = Depends(current_user), sessi
         "contract": {"id": contract.id, "status": contract.status,
                      "total_amount": wf.amount_str(contract.total_amount), "contract_hash": contract.contract_hash,
                      "onchain_contract_id": contract.onchain_contract_id,
-                     "accepted_at": wf.iso(contract.accepted_at), "allowed_actions": _contract_actions(contract, user)},
+                     "accepted_at": wf.iso(contract.accepted_at), "withdrawn_at": wf.iso(contract.withdrawn_at),
+                     "allowed_actions": _contract_actions(contract, user)},
         "agreement": {"version": 1, "hash": contract.contract_hash, "terms": {"scope": contract.scope}},
         "escrow": _escrow_view(session, contract),
         "client": _person(session.get(User, contract.client_id)),

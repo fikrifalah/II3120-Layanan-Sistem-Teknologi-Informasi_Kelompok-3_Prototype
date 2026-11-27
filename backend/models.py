@@ -41,6 +41,8 @@ class Contract(SQLModel, table=True):
     contract_hash: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     accepted_at: Optional[datetime] = None  # freelancer menyetujui kontrak
+    # Freelancer menyerah (demo); client baru boleh reassign setelah ini terisi.
+    withdrawn_at: Optional[datetime] = None
 
 
 class Milestone(SQLModel, table=True):

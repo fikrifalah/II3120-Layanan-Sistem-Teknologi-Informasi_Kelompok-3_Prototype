@@ -183,6 +183,8 @@ export interface Contract {
   documentHash?: string
   escrowAddress?: string
   fundingTxHash?: string
+  /** Freelancer menyerah (demo); client bisa mengalihkan milestone tersisa ke pengganti. */
+  withdrawnAt?: string
 }
 
 export type TxType = 'fund' | 'release' | 'refund' | 'faucet'

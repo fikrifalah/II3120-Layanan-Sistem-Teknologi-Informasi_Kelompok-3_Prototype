@@ -35,6 +35,7 @@ import {
 } from '../services/delivery'
 import {
   acceptContractApi,
+  withdrawContractApi,
   amount,
   defaultMilestone,
   downloadApiFile,
@@ -562,6 +563,46 @@ export default function FreelancerProjects({
             </div>
             {acceptError && <p role="alert">{acceptError}</p>}
           </section>
+        )}
+        {w.withdrawn ? (
+          <section className="delivery-panel" aria-label="Withdrawn">
+            <h2>You withdrew from this project</h2>
+            <p>
+              The client will reassign the remaining milestones to another freelancer. Funds you already received stay
+              yours.
+            </p>
+          </section>
+        ) : (
+          w.canWithdraw && (
+            <section className="delivery-panel" aria-label="Withdraw">
+              <h2>Can&apos;t continue?</h2>
+              <p>Withdraw to let the client reassign the remaining milestones. You cannot undo this.</p>
+              <div className="delivery-actions">
+                <button
+                  type="button"
+                  className="outline-action"
+                  disabled={accepting}
+                  onClick={async () => {
+                    if (!window.confirm('Withdraw from this project? You will not be able to continue the remaining milestones.'))
+                      return
+                    setAccepting(true)
+                    setAcceptError('')
+                    try {
+                      await withdrawContractApi(token, w.contractId)
+                      data.reload()
+                    } catch (e) {
+                      setAcceptError(e instanceof Error ? e.message : 'Could not withdraw.')
+                    } finally {
+                      setAccepting(false)
+                    }
+                  }}
+                >
+                  Withdraw from project
+                </button>
+              </div>
+              {acceptError && <p role="alert">{acceptError}</p>}
+            </section>
+          )
         )}
         <section className="delivery-panel">
           {tab === 'Files' ? (
