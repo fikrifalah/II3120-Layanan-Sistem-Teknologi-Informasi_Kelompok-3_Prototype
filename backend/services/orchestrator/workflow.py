@@ -6,9 +6,9 @@ from typing import Optional
 from fastapi import HTTPException
 from sqlmodel import Session, select
 from web3 import Web3
-from web3.exceptions import ContractLogicError
+from web3.exceptions import BadFunctionCallOutput, ContractLogicError
 
-from models import Contract, Milestone
+from models import Contract, Escrow, Milestone
 from services.orchestrator.db_models import ActivityLog
 
 SETTLED = {"released", "refunded", "split"}
@@ -56,6 +56,9 @@ def chain_call(fn, *args, **kwargs):
         return fn(*args, **kwargs)
     except ContractLogicError as e:
         raise HTTPException(status_code=409, detail=f"Ditolak smart contract: {e.message or e}")
+    except BadFunctionCallOutput as e:  # alamat kontrak kosong: node Hardhat di-restart tanpa deploy ulang
+        raise HTTPException(status_code=503, detail="Smart contract belum di-deploy di blockchain. "
+                                                    "Jalankan `npm run deploy` lalu coba lagi.") from e
     except (ConnectionError, FileNotFoundError, ValueError) as e:
         raise HTTPException(status_code=503, detail=f"Blockchain tidak tersedia: {e}")
 
@@ -102,6 +105,39 @@ def start_next_milestone(session: Session, contract: Contract) -> Optional[Miles
     elif all(m.status in SETTLED for m in rows):
         log_activity(session, contract.id, "All milestones settled; contract ready to close")
     return nxt
+
+
+def void_remaining_milestones(session: Session, contract: Contract, keep: Milestone) -> list[Milestone]:
+    """Putusan REFUND mengakhiri proyek: milestone lain yang belum selesai hangus dan dananya kembali ke client.
+
+    Sama dengan Escrow.executeArbiterVerdict(REFUND): milestone LOCKED/SUBMITTED ikut menjadi REFUNDED.
+    """
+    voided = [m for m in milestones_of(session, contract.id)
+              if m.id != keep.id and m.status not in SETTLED and m.status != "disputed"]
+    for m in voided:
+        m.status = "refunded"
+        m.settled_at = now()
+        session.add(m)
+    if voided:
+        log_activity(session, contract.id,
+                     f"{len(voided)} remaining milestone(s) voided by REFUND verdict; "
+                     f"{amount_str(sum(m.amount for m in voided))} {TOKEN_SYMBOL} returned to client")
+    return voided
+
+
+def mark_contract_closed(session: Session, contract: Contract, tx_hash: str) -> datetime:
+    """Catat penutupan kontrak (setelah closeContract on-chain berhasil)."""
+    closed_at = now()
+    contract.status = "completed"
+    session.add(contract)
+    escrow = session.exec(select(Escrow).where(Escrow.contract_id == contract.id)).first()
+    if escrow:
+        escrow.status = "closed"
+        escrow.close_tx_hash = tx_hash
+        escrow.closed_at = closed_at
+        session.add(escrow)
+    log_activity(session, contract.id, "Contract closed on-chain")
+    return closed_at
 
 
 def settle_milestone(session: Session, contract: Contract, milestone: Milestone, status: str, summary: str) -> None:

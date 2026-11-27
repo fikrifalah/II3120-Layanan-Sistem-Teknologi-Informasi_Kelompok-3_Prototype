@@ -340,7 +340,7 @@ export default function MilestoneReview() {
         <p className="mb-4">
           {dialog === 'revision'
             ? 'Explain which agreed criteria the work does not meet yet. The funds stay in escrow and the review clock stops until the freelancer resubmits.'
-            : 'The arbiter will review the agreed criteria, submitted work and supporting evidence.'}
+            : 'The arbiter will review the agreed criteria and submitted work. A case summary (contract, milestone, revision history, latest submission hash and criteria) is attached automatically as evidence.'}
         </p>
         <Field label={dialog === 'revision' ? 'What needs to change' : 'Reason for the dispute'} required error={noteError}>
           {(p) => <Textarea id={p.id} aria-describedby={p.describedBy} invalid={p.invalid} rows={5} value={note} onChange={(e) => setNote(e.target.value)} />}

@@ -354,6 +354,41 @@ describe("Gigly Smart Contract Escrow Audit & QA Suite (Deliverable 2 II3120)", 
       expect(await simidr.balanceOf(await escrow.getAddress())).to.equal(0n);
     });
 
+    it("REFUND voids every remaining milestone, returns all locked funds to the client and leaves paid milestones intact", async function () {
+      const fixture = await deployFixture();
+      const { simidr, escrow, arbiter, client, freelancerA } = fixture;
+      await createMultiMilestoneContract(fixture);
+
+      await escrow.connect(client).releaseMilestonePayment(1, 0); // M1 paid to freelancer
+      await escrow.connect(freelancerA).submitMilestone(1, 1, DELIVERABLE_HASH_2);
+      await escrow.connect(client).raiseDispute(1, 1); // dispute on M2, M3 still LOCKED
+
+      const clientBalBefore = await simidr.balanceOf(client.address);
+      const freelancerBalBefore = await simidr.balanceOf(freelancerA.address);
+
+      await expect(escrow.connect(arbiter).executeArbiterVerdict(1, 1, VerdictAction.REFUND, 0))
+        .to.emit(escrow, "ArbiterVerdictExecuted")
+        .withArgs(1n, 1n, VerdictAction.REFUND, 0n, M2 + M3)
+        .and.to.emit(escrow, "RemainingMilestonesRefunded")
+        .withArgs(1n, 1n, M3);
+
+      const ms = await escrow.getContractMilestones(1);
+      expect(ms.map((m) => m.status)).to.deep.equal([
+        MilestoneStatus.RELEASED,
+        MilestoneStatus.REFUNDED,
+        MilestoneStatus.REFUNDED,
+      ]);
+      expect(await simidr.balanceOf(client.address)).to.equal(clientBalBefore + M2 + M3);
+      expect(await simidr.balanceOf(freelancerA.address)).to.equal(freelancerBalBefore);
+      expect(await simidr.balanceOf(await escrow.getAddress())).to.equal(0n);
+
+      // Nothing is left to hand over; the contract can only be closed.
+      await expect(
+        escrow.connect(client).reassignRemainingMilestones(1, fixture.freelancerB.address)
+      ).to.be.revertedWith("Escrow: no remaining milestones to reassign");
+      await expect(escrow.connect(client).closeContract(1)).to.emit(escrow, "ContractClosed");
+    });
+
     it("rejects invalid SPLIT percentages (0 or 100) and outsider dispute raising", async function () {
       const fixture = await deployFixture();
       const { escrow, arbiter, client, outsider } = fixture;

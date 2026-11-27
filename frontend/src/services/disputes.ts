@@ -44,6 +44,9 @@ export interface DisputeCase {
     reasoning: string
     freelancer_payout: number
     client_refund: number
+    /** REFUND mengakhiri proyek: milestone lain yang ikut hangus beserta dana yang kembali ke client. */
+    voided_milestones?: { sequence: number; title: string; amount: number }[]
+    voided_refund?: number
     transaction_hash: string | null
     resolved_at: string | null
   }

@@ -66,6 +66,7 @@ export const statusLabel = (s: string) =>
     completed: 'Completed',
     pending: 'Not Started',
     released: 'Paid',
+    refunded: 'Refunded to Client',
     pending_confirmation: 'Awaiting Confirmation',
     closed_with_settlement: 'Closed with Settlement',
   }[s] ?? s.replaceAll('_', ' '))

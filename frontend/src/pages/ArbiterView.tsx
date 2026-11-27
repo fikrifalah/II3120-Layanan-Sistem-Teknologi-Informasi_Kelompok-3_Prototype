@@ -252,6 +252,12 @@ function Detail({ dispute, token, onResolved }: {
                 <div><dt className="text-ink-muted">Freelancer receives</dt><dd className="font-semibold">{formatSim(dispute.verdict.freelancer_payout)}</dd></div>
                 <div><dt className="text-ink-muted">Client receives</dt><dd className="font-semibold">{formatSim(dispute.verdict.client_refund)}</dd></div>
               </dl>
+              {!!dispute.verdict.voided_milestones?.length && (
+                <p className="mt-3 text-small text-ink">
+                  Project ended: {dispute.verdict.voided_milestones.map((m) => `Milestone ${m.sequence}`).join(', ')} voided and{' '}
+                  <b>{formatSim(dispute.verdict.voided_refund ?? 0)}</b> more returned to the client.
+                </p>
+              )}
               {dispute.verdict.transaction_hash && (
                 <p className="mt-4 break-all border-t border-success/15 pt-3 font-mono text-caption text-ink-muted">
                   Transaction: {dispute.verdict.transaction_hash}
@@ -317,6 +323,12 @@ function Detail({ dispute, token, onResolved }: {
               <div className="mt-4 rounded-md bg-surface p-3 text-small">
                 <p className="font-semibold">Settlement preview</p>
                 <p className="mt-1 text-ink-muted">Freelancer: {formatSim(freelancerAmount)} · Client: {formatSim(clientAmount)}</p>
+                {action === 'REFUND' && (
+                  <p className="mt-2 text-danger">
+                    REFUND ends the project: every unpaid milestone is voided and all remaining escrow funds also return to
+                    the client. Milestones already paid stay with the freelancer.
+                  </p>
+                )}
               </div>
               <Button
                 block

@@ -332,14 +332,14 @@ function DeliveryForm({
 /** Sengketa atas permintaan perbaikan yang tidak disetujui freelancer (dana milestone dibekukan). */
 function DisputeDialog({ m, token, close, reload }: { m: WorkMilestone; token: string; close: () => void; reload: () => void }) {
   const [reason, setReason] = useState('')
-  const [files, setFiles] = useState<File[]>([])
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   async function send() {
     setBusy(true)
     setMessage('')
     try {
-      await raiseDisputeApi(token, m.id, reason.trim(), files)
+      // Tanpa unggah berkas: backend melampirkan ringkasan kasus standar sebagai bukti.
+      await raiseDisputeApi(token, m.id, reason.trim(), [])
       close()
       reload()
     } catch (e) {
@@ -379,15 +379,10 @@ function DisputeDialog({ m, token, close, reload }: { m: WorkMilestone; token: s
             Reason
             <textarea rows={4} maxLength={4000} value={reason} onChange={(e) => setReason(e.target.value)} />
           </label>
-          <label>
-            Evidence (optional)
-            <input
-              type="file"
-              multiple
-              accept={acceptedFiles}
-              onChange={(e) => setFiles(Array.from(e.target.files || []).slice(0, 5))}
-            />
-          </label>
+          <p>
+            Evidence is attached automatically: a case summary with the contract, milestone, revision history, latest
+            submission hash and agreed criteria.
+          </p>
           {message && <p role="alert">{message}</p>}
         </fieldset>
       </div>

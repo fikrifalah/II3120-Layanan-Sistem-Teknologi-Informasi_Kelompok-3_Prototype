@@ -19,7 +19,7 @@ Status per commit `f629f3e` (26 Nov 2026). Dokumen ini memetakan **apa yang belu
 | F6 | Kontrak (draft → persetujuan) | Member-3 | ❌ (belum ada di `orchestrator/router.py`) | `ContractBuilder.tsx` (mock) | ❌ |
 | F7 | Escrow & pembayaran SIM-IDR | Member-1 + Member-2 | 🟡 `Escrow.sol` + test ada, RPC baru sebagian | `FundEscrow.tsx`, `WalletPage.tsx` (mock) | 🟡 |
 | F8 | Milestone, deliverable & review | Member-3 | ❌ | `FreelancerProjects.tsx`, `MilestoneReview.tsx` (mock) | ❌ |
-| F9 | Sengketa & keputusan arbiter | Member-5 + Member-6 | ❌ (`dispute_handler/service.py` kosong) | `Disputes.tsx` (mock), `ArbiterView.tsx` kosong | ❌ |
+| F9 | Sengketa & keputusan arbiter | Member-5 + Member-6 | `dispute_handler/service.py` (`/api/v1/disputes/*`) | `MilestoneReview.tsx`, `Disputes.tsx`, `ArbiterView.tsx` (API asli) | ✅ |
 | F10 | Notifikasi & aktivitas | Member-6 | ❌ | lokal di browser | 🟡 |
 | X | Kesiapan deploy (lintas fitur) | semua | – | – | ❌ |
 
@@ -41,7 +41,7 @@ Status per commit `f629f3e` (26 Nov 2026). Dokumen ini memetakan **apa yang belu
 Sudah ada: login, `/auth/me`, logout, token 8 jam tersimpan di tabel `auth_token`, dashboard terpisah per role, dan nama/perusahaan di header mengikuti akun yang login.
 
 - [ ] **Hash password** (bcrypt/argon2). Saat ini password tersimpan sebagai teks biasa `1234`, yang hanya boleh untuk prototype. Perlu juga migrasi data seed. `backend/services/auth/router.py`, `seed_db.py` · M
-- [ ] **Akun arbiter** di seed (role `arbiter`). Saat ini belum ada, sehingga login arbiter tidak mungkin dilakukan. `script/seed_data/`, `seed_db.py` · S
+- [x] **Akun arbiter** (role `arbiter`): `arbiter@example.com` / `1234`, dibuat dengan `python -m services.dispute_handler.seed_arbiter` (dari folder `backend`). Wallet-nya = arbiter default `Escrow.sol`. · S
 - [ ] Bersihkan token kedaluwarsa (job berkala atau saat login). · S
 - [ ] *(opsional)* Registrasi akun baru (client/freelancer) dari UI. · M
 
@@ -104,13 +104,19 @@ Sudah ada: UI workspace freelancer dan review client (mock), tabel `Milestone`, 
 - [ ] Review client: approve (→ lepas dana on-chain) atau minta revisi; auto-release setelah 5 hari (sesuai `Escrow.sol`). · M
 - [ ] Hubungkan `approveMilestone` di `store.tsx` dan halaman `MilestoneReview.tsx` ke API. · M
 
-### F9 — Sengketa & arbiter · ❌
-Sudah ada: fungsi `raiseDispute` / `executeArbiterVerdict` di `Escrow.sol`, `execute_arbiter_verdict_onchain` di RPC, dan tabel `Dispute`.
+### F9 — Sengketa & arbiter · ✅
+Status per 27 Nov 2026. Alur penuh sudah diuji end-to-end lewat API asli (client Hendra → freelancer hasil AI matching → arbiter): revisi ditolak → sengketa → putusan SPLIT 60/40 dieksekusi on-chain → kontrak selesai.
 
-- [ ] `POST /api/v1/disputes` (alasan + upload bukti + hash) → bekukan milestone. `dispute_handler/service.py` · M
-- [ ] `POST /api/v1/disputes/{id}/verdict` (RELEASE / REFUND / SPLIT) → eksekusi on-chain. · M
-- [ ] **Halaman arbiter** (`ArbiterView.tsx` masih kosong): daftar sengketa, bukti, form putusan. · L
-- [ ] Hubungkan `raiseDispute` di `store.tsx` dan `Disputes.tsx` ke API. · S
+- [x] Aturan sengketa: client baru boleh setelah meminta revisi minimal sekali dan hasil revisi tetap ditolak; freelancer boleh menolak permintaan revisi. `orchestrator/workflow.py` (`dispute_block_reason`)
+- [x] `POST /api/v1/disputes` → bekukan milestone on-chain (`Escrow.raiseDispute`). **Bukti standar otomatis** (`ringkasan-sengketa.txt`: kontrak, milestone, riwayat revisi, hash hasil kerja, kriteria) bila tidak ada berkas yang diunggah; di-hash SHA-256. `dispute_handler/service.py`
+- [x] `GET /api/v1/disputes`, `GET /disputes/{id}`, `POST /disputes/{id}/evidence` (tambahan bukti via API).
+- [x] `POST /api/v1/disputes/{id}/verdict` (RELEASE / REFUND / SPLIT) → eksekusi on-chain (`Escrow.executeArbiterVerdict`).
+- [x] **REFUND mengakhiri proyek**: milestone yang disengketakan dan semua milestone yang belum selesai hangus (`REFUNDED`), seluruh dana yang masih terkunci kembali ke client (event `RemainingMilestonesRefunded`), lalu kontrak ditutup otomatis. Milestone yang sudah dibayar tidak berubah. Diuji di Hardhat dan end-to-end.
+- [x] Halaman arbiter `ArbiterView.tsx`: daftar kasus, bukti, preview pembagian dana, form putusan.
+- [x] Client: tombol **Raise dispute** di `MilestoneReview.tsx`; halaman **Disputes** membaca `GET /disputes` (kasus terbuka + sudah diputus beserta verdict dan pembagian dana).
+- [x] Freelancer: sengketa atas permintaan revisi di `FreelancerProjects.tsx` (bukti otomatis, tanpa unggah berkas).
+- [x] Test: 11 test di `dispute_handler/tests/test_disputes.py`.
+- [ ] *(opsional)* UI untuk menambah bukti setelah sengketa dibuka (endpoint sudah ada; demo memakai bukti standar). · S
 
 ### F10 — Notifikasi & aktivitas · 🟡
 - [ ] Notifikasi dan log aktivitas disimpan di backend (sekarang di browser, jadi hilang bila pindah perangkat). · M

@@ -109,6 +109,11 @@ contract Escrow is ReentrancyGuard {
         uint256 freelancerAmount,
         uint256 clientAmount
     );
+    event RemainingMilestonesRefunded(
+        uint256 indexed contractId,
+        uint256 voidedCount,
+        uint256 refundedAmount
+    );
     event ContractClosed(
         uint256 indexed contractId,
         address indexed closedBy
@@ -364,7 +369,8 @@ contract Escrow is ReentrancyGuard {
     /**
      * @notice Binding arbiter verdict on a disputed milestone:
      *         - RELEASE: 100% to freelancer
-     *         - REFUND:  100% to client
+     *         - REFUND:  100% to client, and every other unsettled (LOCKED/SUBMITTED) milestone is voided:
+     *                    marked REFUNDED with its funds returned to the client (the project ends)
      *         - SPLIT:   _freelancerSharePercentage% (1..99) to freelancer, remainder to client
      */
     function executeArbiterVerdict(
@@ -387,13 +393,17 @@ contract Escrow is ReentrancyGuard {
 
         uint256 freelancerAmount = 0;
         uint256 clientAmount = 0;
+        uint256 voidedCount = 0;
+        uint256 voidedAmount = 0;
 
         if (_action == VerdictAction.RELEASE) {
             m.status = MilestoneStatus.RELEASED;
             freelancerAmount = m.amount;
         } else if (_action == VerdictAction.REFUND) {
             m.status = MilestoneStatus.REFUNDED;
-            clientAmount = m.amount;
+            // A REFUND verdict ends the project: all other unsettled milestones are voided and refunded.
+            (voidedCount, voidedAmount) = _voidRemainingMilestones(_contractId, _milestoneIndex);
+            clientAmount = m.amount + voidedAmount;
         } else {
             require(
                 _freelancerSharePercentage > 0 && _freelancerSharePercentage < 100,
@@ -421,6 +431,30 @@ contract Escrow is ReentrancyGuard {
             freelancerAmount,
             clientAmount
         );
+        if (voidedCount > 0) {
+            emit RemainingMilestonesRefunded(_contractId, voidedCount, voidedAmount);
+        }
+    }
+
+    /**
+     * @dev Marks every LOCKED/SUBMITTED milestone except `_skipIndex` as REFUNDED (voided) and books
+     *      their amounts as settled. Token transfer is done by the caller after all state updates (CEI).
+     */
+    function _voidRemainingMilestones(
+        uint256 _contractId,
+        uint256 _skipIndex
+    ) private returns (uint256 count, uint256 amount) {
+        EscrowContract storage c = contracts[_contractId];
+        for (uint256 i = 0; i < c.milestoneCount; i++) {
+            if (i == _skipIndex) continue;
+            Milestone storage other = milestones[_contractId][i];
+            if (other.status == MilestoneStatus.LOCKED || other.status == MilestoneStatus.SUBMITTED) {
+                other.status = MilestoneStatus.REFUNDED;
+                count++;
+                amount += other.amount;
+            }
+        }
+        c.totalReleased += amount;
     }
 
     /**

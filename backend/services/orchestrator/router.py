@@ -486,17 +486,10 @@ def close_contract(contract_id: int, user: User = Depends(current_user), session
     if any(m.status not in wf.SETTLED for m in wf.milestones_of(session, contract.id)):
         raise HTTPException(status_code=409, detail="Semua milestone harus selesai sebelum kontrak ditutup.")
     tx = wf.chain_call(chain.close_contract_onchain, contract.onchain_contract_id)
-    contract.status = "completed"
-    session.add(contract)
-    escrow = session.exec(select(Escrow).where(Escrow.contract_id == contract.id)).one()
-    escrow.status = "closed"
-    escrow.close_tx_hash = tx["tx_hash"]
-    escrow.closed_at = wf.now()
-    session.add(escrow)
-    wf.log_activity(session, contract.id, "Contract closed on-chain")
+    closed_at = wf.mark_contract_closed(session, contract, tx["tx_hash"])
     session.commit()
     return {"data": {"status": "closed", "final_status": contract.status, "contract_id": contract.id,
-                     "transaction_hash": tx["tx_hash"], "closed_at": wf.iso(escrow.closed_at)}}
+                     "transaction_hash": tx["tx_hash"], "closed_at": wf.iso(closed_at)}}
 
 
 # ------------------------------------------------------------------ milestone

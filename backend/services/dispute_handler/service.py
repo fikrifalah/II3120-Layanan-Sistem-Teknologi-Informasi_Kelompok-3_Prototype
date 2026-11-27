@@ -2,6 +2,7 @@
 
 Alur:
 1. Client/freelancer mengajukan sengketa atas satu milestone (`POST /disputes`) beserta bukti.
+   Tanpa unggahan berkas, backend melampirkan bukti standar `ringkasan-sengketa.txt` (ringkasan kasus).
    Sengketa baru boleh setelah perbaikan tidak disepakati: client atas hasil revisi yang tetap ditolak,
    freelancer atas permintaan perbaikan yang tidak ia setujui (workflow.dispute_block_reason).
    Bukti disimpan off-chain di `uploads/disputes/` dan di-hash SHA-256; milestone dibekukan
@@ -9,6 +10,8 @@ Alur:
 2. Kedua pihak boleh menambah bukti selama sengketa masih terbuka (`POST /disputes/{id}/evidence`).
 3. Arbiter yang ditunjuk memberi putusan (`POST /disputes/{id}/verdict`): RELEASE, REFUND, atau
    SPLIT; putusan dieksekusi on-chain lewat `Escrow.executeArbiterVerdict`.
+   REFUND mengakhiri proyek: semua milestone yang belum selesai hangus, seluruh dana yang masih terkunci
+   kembali ke client, lalu kontrak ditutup (milestone yang sudah dibayar tidak berubah).
 
 Syarat: kontrak sudah punya escrow on-chain (`Contract.onchain_contract_id`).
 """
@@ -27,6 +30,7 @@ from database import get_db
 from models import Contract, Dispute, DisputeEvidence, Job, Milestone, User
 from services.auth.router import current_user
 from services.orchestrator import workflow as wf
+from services.orchestrator.db_models import MilestoneCriterion
 from services.smart_contract import service as chain
 
 UPLOADS_DIR = Path(__file__).resolve().parents[2] / "uploads"
@@ -91,6 +95,50 @@ def _save_evidence(session: Session, dispute_id: int, uploader: User, files: lis
                                     stored_name=stored, size_bytes=len(data), sha256=digest))
 
 
+TEMPLATE_EVIDENCE_NAME = "ringkasan-sengketa.txt"
+
+
+def _template_evidence(session: Session, milestone: Milestone, contract: Contract, user: User,
+                       reason: str) -> list[tuple[str, bytes, str]]:
+    """Bukti standar (demo, tanpa unggah berkas): ringkasan kasus dari data kontrak yang sudah tercatat."""
+    job = session.get(Job, contract.job_id)
+    client = session.get(User, contract.client_id)
+    freelancer = session.get(User, contract.freelancer_id)
+    criteria = session.exec(select(MilestoneCriterion).where(MilestoneCriterion.milestone_id == milestone.id)
+                            .order_by(MilestoneCriterion.id)).all()
+    role = "Client" if user.id == contract.client_id else "Freelancer"
+    lines = [
+        "RINGKASAN SENGKETA (bukti standar platform Gigly)",
+        "=" * 48,
+        f"Proyek           : {job.title if job else '-'} (job #{contract.job_id})",
+        f"Kontrak          : #{contract.id} - escrow on-chain #{contract.onchain_contract_id}",
+        f"Client           : {client.name if client else '-'}",
+        f"Freelancer       : {freelancer.name if freelancer else '-'}",
+        f"Milestone        : {milestone.sequence} - {milestone.title}",
+        f"Nilai milestone  : {wf.amount_str(milestone.amount)} SIM-IDR",
+        f"Diajukan oleh    : {user.name} ({role})",
+        f"Waktu pengajuan  : {wf.iso(wf.now())}",
+        "",
+        "Alasan sengketa:",
+        f"  {reason.strip()}",
+        "",
+        f"Riwayat perbaikan: {milestone.revision_count} kali diminta",
+        f"Catatan perbaikan terakhir: {milestone.revision_note or '-'}",
+        "",
+        "Hasil kerja terakhir:",
+        f"  URL   : {milestone.deliverable_url or '-'}",
+        f"  SHA-256: {milestone.deliverable_hash or '-'}",
+        "",
+        "Kriteria penerimaan yang disepakati:",
+        *[f"  {i}. {c.description}{' (wajib)' if c.is_mandatory else ''}" for i, c in enumerate(criteria, 1)],
+        *([] if criteria else ["  -"]),
+        "",
+        "Dokumen ini dibuat otomatis dari data kontrak dan milestone saat sengketa diajukan.",
+    ]
+    data = ("\n".join(lines) + "\n").encode("utf-8")
+    return [(TEMPLATE_EVIDENCE_NAME, data, hashlib.sha256(data).hexdigest())]
+
+
 def _pick_arbiter(session: Session, onchain_arbiter: str) -> User:
     """Arbiter yang wallet-nya sama dengan arbiter on-chain; jika tidak ada, akun arbiter pertama."""
     arbiters = session.exec(select(User).where(User.role == "arbiter").order_by(User.id)).all()
@@ -119,6 +167,9 @@ def _view(session: Session, dispute: Dispute, milestone: Milestone, contract: Co
     ).all()
     verdict = None
     if dispute.verdict:
+        # REFUND mengakhiri proyek: milestone lain yang ikut di-refund (hangus) pada putusan ini.
+        voided = [m for m in wf.milestones_of(session, contract.id)
+                  if dispute.verdict == "REFUND" and m.id != milestone.id and m.status == "refunded"]
         verdict = {
             "action": dispute.verdict,
             "freelancer_share_percentage": dispute.freelancer_share_pct,
@@ -126,6 +177,8 @@ def _view(session: Session, dispute: Dispute, milestone: Milestone, contract: Co
             "reasoning": dispute.verdict_reasoning,
             "freelancer_payout": dispute.freelancer_payout,
             "client_refund": dispute.client_refund,
+            "voided_milestones": [{"sequence": m.sequence, "title": m.title, "amount": m.amount} for m in voided],
+            "voided_refund": sum(m.amount for m in voided),
             "transaction_hash": dispute.verdict_tx_hash,
             "resolved_at": wf.iso(dispute.resolved_at),
         }
@@ -197,7 +250,8 @@ async def raise_dispute(
     session.add(milestone)
     wf.log_activity(session, contract.id, f"Dispute raised on Milestone {milestone.sequence}; funds frozen")
     session.flush()
-    _save_evidence(session, dispute.id, user, files)
+    # Tanpa unggahan berkas (alur demo): lampirkan ringkasan kasus standar sebagai bukti.
+    _save_evidence(session, dispute.id, user, files or _template_evidence(session, milestone, contract, user, reason))
     session.commit()
     session.refresh(dispute)
     return {"data": _view(session, dispute, milestone, contract)}
@@ -288,9 +342,17 @@ def execute_verdict(
     dispute.verdict_tx_hash = tx["tx_hash"]
     dispute.resolved_at = wf.now()
     session.add(dispute)
+    if req.verdict_action == "REFUND":  # proyek berakhir: milestone tersisa hangus (Escrow.sol sudah me-refund)
+        wf.void_remaining_milestones(session, contract, milestone)
     wf.settle_milestone(session, contract, milestone, MILESTONE_STATUS_AFTER_VERDICT[req.verdict_action],
                         f"Arbiter verdict on Milestone {milestone.sequence}: {req.verdict_action} "
                         f"({share}% to freelancer)")
+    if req.verdict_action == "REFUND" and all(m.status in wf.SETTLED for m in wf.milestones_of(session, contract.id)):
+        try:
+            close = wf.chain_call(chain.close_contract_onchain, contract.onchain_contract_id)
+            wf.mark_contract_closed(session, contract, close["tx_hash"])
+        except HTTPException:  # putusan tetap berlaku; kontrak bisa ditutup lagi lewat /escrow/{id}/close
+            wf.log_activity(session, contract.id, "Contract could not be closed on-chain yet; retry closing later")
     session.commit()
     # Ringkasan putusan di level atas mengikuti contoh respons dokumen (Bab 3.2 no. 4).
     return {"data": {**_view(session, dispute, milestone, contract), "onchain_status": "resolved_onchain",

@@ -40,7 +40,13 @@ class FakeChain:
     def execute_arbiter_verdict_onchain(self, contract_id, index, action, pct):
         self.calls.append(("verdict", contract_id, index, action, pct))
         self.statuses[index] = {"RELEASE": "RELEASED", "REFUND": "REFUNDED", "SPLIT": "SPLIT_SETTLED"}[action]
+        if action == "REFUND":  # sama dengan Escrow.sol: milestone tersisa ikut hangus
+            self.statuses = ["REFUNDED" if s in ("LOCKED", "SUBMITTED") else s for s in self.statuses]
         return {"tx_hash": "0xverdict", "status": 1}
+
+    def close_contract_onchain(self, contract_id):
+        self.calls.append(("close", contract_id))
+        return {"tx_hash": "0xclose", "status": 1}
 
 
 @pytest.fixture
@@ -52,6 +58,7 @@ def env(tmp_path, monkeypatch, postgres_engine):
     monkeypatch.setattr(chain, "get_contract", fake.get_contract)
     monkeypatch.setattr(chain, "raise_dispute_onchain", fake.raise_dispute_onchain)
     monkeypatch.setattr(chain, "execute_arbiter_verdict_onchain", fake.execute_arbiter_verdict_onchain)
+    monkeypatch.setattr(chain, "close_contract_onchain", fake.close_contract_onchain)
     monkeypatch.setattr(chain, "user_address", lambda uid: fake.wallets.get(uid, "0x" + "00" * 20))
     monkeypatch.setattr(chain, "arbiter_address", lambda: ARBITER_WALLET)
 
@@ -187,6 +194,7 @@ def test_split_verdict_pays_out_and_closes_dispute(env):
     assert d["verdict"] | {"resolved_at": None} == {
         "action": "SPLIT", "freelancer_share_percentage": 70, "client_refund_percentage": 30,
         "reasoning": "Dokumentasi kurang", "freelancer_payout": 4200.0, "client_refund": 1800.0,
+        "voided_milestones": [], "voided_refund": 0,
         "transaction_hash": "0xverdict", "resolved_at": None}
     assert env["fake"].calls[-1] == ("verdict", 1, 0, "SPLIT", 70)
     with Session(env["engine"]) as s:  # alur kembali ke milestone berikutnya
@@ -196,14 +204,21 @@ def test_split_verdict_pays_out_and_closes_dispute(env):
     assert env["call"]("POST", f"/{dispute_id}/evidence", "freelancer", files=files).status_code == 409
 
 
-@pytest.mark.parametrize("action,payout,refund,status", [
-    ("RELEASE", 6000.0, 0.0, "released"), ("REFUND", 0.0, 6000.0, "refunded")])
-def test_release_and_refund_verdicts(env, action, payout, refund, status):
+@pytest.mark.parametrize("action,payout,refund,status,m2_status,contract_status,voided", [
+    ("RELEASE", 6000.0, 0.0, "released", "in_progress", "active", 0),
+    # REFUND mengakhiri proyek: milestone 2 (9000) ikut hangus dan kontrak ditutup.
+    ("REFUND", 0.0, 6000.0, "refunded", "refunded", "completed", 9000.0)])
+def test_release_and_refund_verdicts(env, action, payout, refund, status, m2_status, contract_status, voided):
     dispute_id = _raise(env).json()["data"]["id"]
     r = env["call"]("POST", f"/{dispute_id}/verdict", "arbiter", json={"verdict_action": action, "verdict_reasoning": "ok"})
     d = r.json()["data"]
     assert (d["verdict"]["freelancer_payout"], d["verdict"]["client_refund"], d["milestone"]["status"]) == (payout, refund, status)
-    assert env["fake"].calls[-1] == ("verdict", 1, 0, action, 0)
+    assert d["verdict"]["voided_refund"] == voided
+    assert ("verdict", 1, 0, action, 0) in env["fake"].calls
+    with Session(env["engine"]) as s:
+        assert s.get(Milestone, env["ids"]["m2"]).status == m2_status
+        assert s.get(Contract, env["ids"]["contract"]).status == contract_status
+    assert (env["fake"].calls[-1] == ("close", 1)) == (action == "REFUND")
 
 
 def test_split_without_percentage_is_rejected(env):
@@ -214,11 +229,14 @@ def test_split_without_percentage_is_rejected(env):
 
 
 def test_visibility_and_extra_evidence(env):
-    dispute_id = _raise(env).json()["data"]["id"]
+    raised = _raise(env).json()["data"]
+    dispute_id = raised["id"]
+    # Tanpa unggahan berkas: bukti standar ringkasan kasus dilampirkan otomatis.
+    assert [e["filename"] for e in raised["evidence"]] == [service.TEMPLATE_EVIDENCE_NAME]
     files = [("evidence", ("bantahan.pdf", b"%PDF", "application/pdf"))]
     r = env["call"]("POST", f"/{dispute_id}/evidence", "freelancer", files=files)
     assert r.status_code == 201
-    assert [e["uploaded_by"]["role"] for e in r.json()["data"]["evidence"]] == ["freelancer"]
+    assert [e["uploaded_by"]["role"] for e in r.json()["data"]["evidence"]] == ["client", "freelancer"]
     assert env["call"]("POST", f"/{dispute_id}/evidence", "arbiter", files=files).status_code == 403
     for who in ("client", "freelancer", "arbiter"):
         assert [d["id"] for d in env["call"]("GET", "", who).json()["data"]] == [dispute_id]
