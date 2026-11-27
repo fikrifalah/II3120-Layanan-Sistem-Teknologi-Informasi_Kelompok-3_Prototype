@@ -337,7 +337,7 @@ async function requestJson<T>(method: 'GET' | 'POST', path: string, body?: unkno
 const postJson = <T,>(path: string, body: unknown, token?: string) => requestJson<T>('POST', path, body, token)
 
 /** Kirim proyek ke backend (sekali saja), lalu minta rekomendasi. */
-export async function fetchCandidates(project: Project, onJobCreated: (jobId: number) => void, limit = 6): Promise<Candidate[]> {
+export async function fetchCandidates(project: Project, onJobCreated: (jobId: number) => void, limit = 5): Promise<Candidate[]> {
   let jobId = project.backendJobId
   if (!jobId) {
     const description = [project.description, ...project.deliverables.map((d) => '- ' + d)].join('\n')

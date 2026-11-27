@@ -36,7 +36,7 @@ if (cmd !== "uvicorn") {
 const child = spawn(cmd, ["main:app", "--reload"], {
   cwd: backendDir,
   stdio: "inherit",
-  shell: isWin,
+  shell: isWin && cmd === "uvicorn",
 });
 
 child.on("exit", (code) => {

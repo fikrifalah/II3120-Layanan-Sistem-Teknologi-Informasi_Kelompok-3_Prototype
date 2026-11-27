@@ -80,7 +80,6 @@ export default function Matches() {
   const candidates = store.candidates[projectId]
   const [running, setRunning] = useState(false)
   const [failed, setFailed] = useState(false)
-  const [minScore, setMinScore] = useState(50)
   const [skillFilter, setSkillFilter] = useState<string[]>([])
   const [availNow, setAvailNow] = useState(false)
   const [withinBudget, setWithinBudget] = useState(false)
@@ -113,7 +112,6 @@ export default function Matches() {
   const visible = useMemo(() => {
     const list = (candidates ?? []).filter(
       (c) =>
-        c.score >= minScore &&
         skillFilter.every((s) => c.matchedSkills.includes(s)) &&
         (!availNow || c.availableNow) &&
         (!withinBudget || (project && c.estimateIdr <= project.budgetIdr)),
@@ -124,7 +122,7 @@ export default function Matches() {
       experience: (a, b) => b.experienceYears - a.experienceYears,
     }
     return [...list].sort(by[sort])
-  }, [candidates, minScore, skillFilter, availNow, withinBudget, sort, project])
+  }, [candidates, skillFilter, availNow, withinBudget, sort, project])
 
   if (!project) return <Navigate to="/client/projects" replace />
 
@@ -135,7 +133,6 @@ export default function Matches() {
   const anyInvited = store.invitations.some((i) => i.projectId === projectId)
 
   const resetFilters = () => {
-    setMinScore(50)
     setSkillFilter([])
     setAvailNow(false)
     setWithinBudget(false)
@@ -143,15 +140,6 @@ export default function Matches() {
 
   const filters = (
     <div className="space-y-6">
-      <div>
-        <div className="mb-2 flex items-center justify-between text-small">
-          <label htmlFor="min-score" className="font-semibold text-ink">
-            Match score
-          </label>
-          <span className="tabular text-ink-muted">≥ {minScore}</span>
-        </div>
-        <input id="min-score" type="range" min={50} max={95} step={5} value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="h-11 w-full cursor-pointer accent-brand" />
-      </div>
       <fieldset>
         <legend className="mb-1 text-small font-semibold text-ink">Has required skill</legend>
         {project.requiredSkills.map((s) => {
