@@ -162,12 +162,14 @@ npm run deploy
 ```
 
 #### Step 3 — Verify `backend/.env`
-Ensure `backend/.env` contains the addresses printed by `npm run deploy` and Hardhat's local test keys (no quotes, no spaces around `=`):
+Copy `backend/.env.example` to `backend/.env` (it documents each variable). Ensure it contains your OpenRouter API key, the addresses printed by `npm run deploy`, and Hardhat's local test keys (no quotes, no spaces around `=`):
 ```ini
 DATABASE_URL=postgresql+psycopg://gigly:gigly@localhost:5432/gigly
+TEST_DATABASE_URL=postgresql+psycopg://gigly:gigly@localhost:5432/gigly_test
 LLM_BASE_URL=https://openrouter.ai/api/v1
-LLM_API_KEY=your_llm_api_key_here
-LLM_MODEL=llama-3.3-70b-versatile
+LLM_API_KEY=your_openrouter_api_key_here
+LLM_MODEL=meta-llama/llama-3.3-70b-instruct
+EMBEDDING_MODEL=baai/bge-m3
 RPC_URL=http://127.0.0.1:8545
 SIMIDR_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
 ESCROW_CONTRACT_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
