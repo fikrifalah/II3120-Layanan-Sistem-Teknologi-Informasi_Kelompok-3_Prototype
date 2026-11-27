@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { BriefcaseBusiness, Check, Coins, FolderClosed, Info, Layers, Pencil, Plus } from 'lucide-react'
-import { Tabs } from '../components/ui/Display'
+import { Button } from '../components/ui/Button'
+import { PageHeader, Tabs } from '../components/ui/Display'
+import { Alert } from '../components/ui/Feedback'
+import { Field, Input, Textarea } from '../components/ui/Field'
+import { PersonAvatar } from '../components/ui/Identity'
+import { initialsOf } from '../layouts/AppShell'
+import { cn } from '../lib/cn'
 import { formatIdr } from '../lib/format'
 import { catalog, profileError, requestProfile, skillGroups, type FreelancerProfile, type ProfileFields } from '../services/freelancerProfile'
-import './profile.css'
 
 type Tab = keyof ProfileFields
 const tabs: { id: Tab; label: string; icon: JSX.Element }[] = [
@@ -46,8 +51,9 @@ export default function ProfilePage({ token, onSaved }: { token: string; onSaved
     return () => controller.abort()
   }, [token, attempt])
 
-  if (!draft || !saved) return <section className="profile-card" role="status">{error || 'Loading profile…'}
-    {error && <button className="outline-action ml-4" onClick={() => retry(attempt + 1)}>Retry</button>}</section>
+  if (!draft || !saved) return error
+    ? <Alert tone="danger" title={error} action={<button type="button" className="link text-small" onClick={() => retry(attempt + 1)}>Retry</button>} />
+    : <p role="status" className="card px-5 py-4 text-small text-ink-muted">Loading profile…</p>
 
   const rate = /^\d+$/.test(draft.estimated_project_rate) ? Number(draft.estimated_project_rate) : NaN
   const fields: ProfileFields = { ...draft, portfolio: draft.portfolio.trim(), experience: draft.experience.trim(), estimated_project_rate: rate }
@@ -75,31 +81,37 @@ export default function ProfilePage({ token, onSaved }: { token: string; onSaved
       if (!signal.aborted) setSaving(false)
     }
   }
-  return <div className="my-profile">
-    <header className="profile-heading"><img src="/brand/rafi.png" alt="" /><div><h1>{saved.name}</h1><p>Freelancer · My Profile</p></div>
-      <button className="outline-action" disabled={saving} onClick={() => editor.current?.querySelector<HTMLElement>('textarea, input, button.skill-option')?.focus()}><Pencil />Edit Profile</button></header>
+  return <div>
+    <PageHeader title={saved.name} subtitle="Freelancer · My Profile" back={<PersonAvatar initials={initialsOf(saved.name)} size={56} />}
+      actions={<Button variant="secondary" disabled={saving} icon={<Pencil className="size-4" aria-hidden />} onClick={() => editor.current?.querySelector<HTMLElement>('textarea, input, button.skill-option')?.focus()}>Edit Profile</Button>} />
     <Tabs<Tab> tabs={tabs} label="Profile sections" value={tab} onChange={setTab} />
-    <form className="profile-card" onSubmit={e => { e.preventDefault(); void save() }}>
+    <form className="card mt-4 p-5 md:p-6" onSubmit={e => { e.preventDefault(); void save() }}>
       <section ref={editor} role="tabpanel" aria-label={titles[tab]}>
-        <div className="profile-section-head"><h2>{titles[tab]}</h2>{tab === 'skills' && <span>{draft.skills.length} / {catalog.length} selected</span>}</div>
-        <p className="profile-help">{hints[tab]}</p>
-        {tab === 'portfolio' || tab === 'experience' ? <label className="profile-field">{tab === 'portfolio' ? 'Portfolio description' : 'Experience description'}
-          <textarea required disabled={saving} maxLength={5000} value={draft[tab]} onChange={e => change({ [tab]: e.target.value })} /></label> :
-        tab === 'skills' ? <div className="profile-skills">{Object.entries(skillGroups).map(([group, options]) =>
-          <fieldset key={group} disabled={saving} aria-label={group}><strong>{group} ({options.length})</strong><div>{options.map(skill => {
-            const selected = draft.skills.includes(skill)
-            return <button key={skill} type="button" className="skill-option" aria-pressed={selected} onClick={() => change({
-              skills: selected ? draft.skills.filter(s => s !== skill) : [...draft.skills, skill],
-            })}>{selected ? <Check /> : <Plus />}{skill}</button>
-          })}</div></fieldset>)}<button type="button" className="link" disabled={saving || !draft.skills.length} onClick={() => change({ skills: [] })}>Clear selection</button></div> :
-          <><label className="profile-field">Estimated project rate (IDR)<span className="profile-rate"><b>Rp</b>
-            <input required disabled={saving} inputMode="numeric" value={draft.estimated_project_rate} onChange={e => change({ estimated_project_rate: e.target.value })} /></span></label>
-            <div className="rate-preview"><Coins /><div>Your estimated project rate<strong>{Number.isSafeInteger(rate) && rate > 0 ? formatIdr(rate) : '—'}</strong>Per project</div></div>
-            <p className="rate-info"><Info />This rate helps clients find freelancers within their project budget. The final payment will be agreed upon during contract negotiation.</p></>}
+        <div className="flex items-center justify-between gap-3"><h2 className="text-h2">{titles[tab]}</h2>{tab === 'skills' && <span className="tabular whitespace-nowrap rounded-full bg-brand-soft px-2.5 py-1 text-caption font-semibold text-brand">{draft.skills.length} / {catalog.length} selected</span>}</div>
+        <p className="mb-4 mt-1 text-small text-ink-muted">{hints[tab]}</p>
+        {tab === 'portfolio' || tab === 'experience' ? <Field label={tab === 'portfolio' ? 'Portfolio description' : 'Experience description'}>
+          {({ id }) => <Textarea id={id} rows={10} required disabled={saving} maxLength={5000} value={draft[tab]} onChange={e => change({ [tab]: e.target.value })} />}
+        </Field> :
+        tab === 'skills' ? <div>{Object.entries(skillGroups).map(([group, options]) =>
+          <fieldset key={group} disabled={saving} aria-label={group} className="grid min-w-0 gap-2 border-b border-line py-3 md:grid-cols-[220px_minmax(0,1fr)] md:items-center">
+            <p className="text-small font-semibold">{group} ({options.length})</p><div className="flex flex-wrap gap-2">{options.map(skill => {
+              const selected = draft.skills.includes(skill)
+              return <button key={skill} type="button" aria-pressed={selected}
+                className={cn('skill-option inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 text-small font-medium transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] disabled:opacity-60 [&>svg]:size-4',
+                  selected ? 'border-brand bg-brand text-white' : 'border-line bg-surface text-ink hover:border-brand/50')}
+                onClick={() => change({
+                  skills: selected ? draft.skills.filter(s => s !== skill) : [...draft.skills, skill],
+                })}>{selected ? <Check aria-hidden /> : <Plus aria-hidden />}{skill}</button>
+            })}</div></fieldset>)}<button type="button" className="link mt-3 text-small disabled:text-disabled-text" disabled={saving || !draft.skills.length} onClick={() => change({ skills: [] })}>Clear selection</button></div> :
+          <><Field label="Estimated project rate (IDR)" className="max-w-xl">
+            {({ id }) => <Input id={id} required disabled={saving} inputMode="numeric" prefixIcon={<span className="text-small font-semibold">Rp</span>} value={draft.estimated_project_rate} onChange={e => change({ estimated_project_rate: e.target.value })} />}
+          </Field>
+            <div className="my-4 flex items-center gap-4 rounded-md bg-canvas p-4"><Coins className="size-6 shrink-0 text-accent-strong" aria-hidden /><p className="text-caption text-ink-muted">Your estimated project rate<span className="tabular block text-h1 text-ink">{Number.isSafeInteger(rate) && rate > 0 ? formatIdr(rate) : '—'}</span>Per project</p></div>
+            <p className="flex items-start gap-2 text-small text-ink-muted"><Info className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />This rate helps clients find freelancers within their project budget. The final payment will be agreed upon during contract negotiation.</p></>}
       </section>
-      <footer><div aria-live="polite">{error || validation || (saving ? 'Saving…' : dirty ? 'Unsaved changes' : notice)}</div>
-        <button type="button" className="outline-action" disabled={saving} onClick={() => { setDraft(draftFrom(saved)); setError(''); setNotice('') }}>Cancel</button>
-        <button className="primary-action" disabled={saving || !dirty || !!validation}>{saving ? 'Saving…' : 'Save Changes'}</button>
+      <footer className="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4"><div className="min-w-0 flex-1 basis-full text-small text-ink-muted sm:basis-0" aria-live="polite">{error || validation || (saving ? 'Saving…' : dirty ? 'Unsaved changes' : notice)}</div>
+        <Button variant="quiet" disabled={saving} onClick={() => { setDraft(draftFrom(saved)); setError(''); setNotice('') }}>Cancel</Button>
+        <Button type="submit" disabled={saving || !dirty || !!validation}>{saving ? 'Saving…' : 'Save Changes'}</Button>
       </footer>
     </form>
   </div>

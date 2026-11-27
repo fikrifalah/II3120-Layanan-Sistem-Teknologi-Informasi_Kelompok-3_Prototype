@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { Button } from './ui/Button'
 import { Dialog } from './ui/Feedback'
+import { Textarea } from './ui/Field'
 import { demoRecipient, sendDemoMessage, useDemoWorkspace } from '../services/demoWorkspace'
 
 export default function InvitationMessages({ id, sender, close }: { id: string; sender: 'client' | 'freelancer'; close: () => void }) {
@@ -18,7 +20,7 @@ export default function InvitationMessages({ id, sender, close }: { id: string; 
         setBusy(true); setError('')
         try { await sendDemoMessage(id, sender, text); setText('') } catch { setError('Could not send message. Please retry.') }
         finally { setBusy(false) }
-      }}><label className="block">Message<textarea className="my-2 block w-full rounded-sm border border-line p-2" rows={3} required maxLength={2000} value={text} disabled={busy} onChange={e => setText(e.target.value)} /></label>
-        {error && <p role="alert">{error}</p>}<button className="rounded-sm bg-brand px-4 py-2 font-semibold text-white disabled:opacity-50" disabled={busy || !text.trim()}>Send message</button></form>}</>}
+      }}><label className="block">Message<Textarea className="my-2 block" rows={3} required maxLength={2000} value={text} disabled={busy} onChange={e => setText(e.target.value)} /></label>
+        {error && <p role="alert">{error}</p>}<Button type="submit" disabled={busy || !text.trim()}>Send message</Button></form>}</>}
   </Dialog>
 }
