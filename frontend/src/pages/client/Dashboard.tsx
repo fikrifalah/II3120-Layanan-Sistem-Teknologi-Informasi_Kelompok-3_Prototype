@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { AlertTriangle, ArrowRight, CheckCircle2, ChevronRight, Clock, Coins, FileSignature, FolderOpen, Plus, Sparkles, UserCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useStore } from '../../services/store'
-import { formatSim, timeAgo } from '../../lib/format'
+import { formatSim, greeting, timeAgo } from '../../lib/format'
 import { usePageTitle } from '../../lib/usePageTitle'
 import { cn } from '../../lib/cn'
 import { LinkButton } from '../../components/ui/Button'
@@ -17,11 +17,6 @@ interface ActionItem {
   to: string
   cta: string
   tone: 'warning' | 'brand'
-}
-
-function greeting() {
-  const h = new Date().getHours()
-  return h < 11 ? 'Good morning' : h < 15 ? 'Good afternoon' : 'Good evening'
 }
 
 export default function Dashboard() {

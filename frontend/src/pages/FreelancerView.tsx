@@ -1,32 +1,27 @@
 import { useState } from 'react'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import FreelancerProjects, { projectPath, milestonePath } from './FreelancerProjects'
+import { Calendar, CheckCircle2, ChevronDown, Circle, Coins, FileText, FolderKanban, FolderOpen, Home, Info, LayoutDashboard, Mail, MessageSquare, Scale, Settings, LogOut, UserRound, Wallet } from 'lucide-react'
+import AppShell, { AccountMenu, NotificationsMenu, WalletChip, initialsOf, type NavItem } from '../layouts/AppShell'
+import FreelancerProjects, { projectPath, milestonePath, WorkStatusBadge } from './FreelancerProjects'
 import { useFreelancerWallet, useProjectWork, amount, defaultMilestone, settled, statusLabel } from '../services/projectWork'
 import ReceivedInvitations from './ReceivedInvitations'
 import { useReceivedInvitations } from '../services/receivedInvitations'
 import ProfilePage from './FreelancerProfile'
 import type { FreelancerProfile } from '../services/freelancerProfile'
-import { Bell, Calendar, CheckCircle2, ChevronDown, ChevronRight, Circle, CircleAlert, CodeXml, Coins, FileText, FolderClosed, Home, Info, LogOut, Mail, Menu, MessageSquare, Settings, UserRound, Wallet } from 'lucide-react'
+import { Badge, SkillChip } from '../components/ui/Badge'
+import { Button, LinkButton } from '../components/ui/Button'
+import { CardTitle, PageHeader, Progress, SectionTitle, StatCard } from '../components/ui/Display'
 import { Dialog } from '../components/ui/Feedback'
-import { formatDate } from '../lib/format'
+import { Select } from '../components/ui/Field'
+import { ProjectIcon } from '../components/ProjectRow'
+import { formatDate, greeting } from '../lib/format'
 import { usePageTitle } from '../lib/usePageTitle'
-import './workspace.css'
 
-const navigation = [
-  { label: 'Dashboard', icon: Home }, { label: 'Invitations', icon: Mail },
-  { label: 'My Projects', icon: FolderClosed }, { label: 'Contracts', icon: FileText },
-  { label: 'Messages', icon: MessageSquare }, { label: 'Wallet', icon: Wallet },
-  { label: 'Disputes', icon: CircleAlert }, { label: 'My Profile', icon: UserRound },
-]
-const metrics = [
-  { label: 'New Invitations', icon: Mail }, { label: 'Active Projects', icon: FolderClosed },
-  { label: 'Pending Payments', icon: Coins }, { label: 'Total Earnings (Confirmed)', icon: Wallet },
-]
+const availabilityOptions = ['Available within 1 week', 'Available now', 'Unavailable']
+const icon = 'size-5'
 
-function CodeTile() { return <span className="code-tile"><CodeXml /></span> }
-function Progress({ value, label }: { value: number; label: string }) {
-  return <progress max={100} value={value} aria-label={label} />
-}
+// Nominal token boleh turun baris di kartu sempit; angka uang tidak boleh terpotong.
+const Money = ({ children }: { children: string }) => <span className="flex flex-wrap gap-x-1.5 text-h2 md:text-h1">{children.split(' ').map(part => <span key={part}>{part}</span>)}</span>
 
 export default function FreelancerView({ name, account, token, onLogout }: { name: string; account: string; token: string; onLogout: () => void }) {
   const { section, invitationId, projectId, milestoneId } = useParams()
@@ -49,84 +44,169 @@ export default function FreelancerView({ name, account, token, onLogout }: { nam
   const [savedProfile, setSavedProfile] = useState<FreelancerProfile>()
   usePageTitle(invitationsPage && invitationId ? 'Invitation Detail' : page === 'Dashboard' ? 'Freelancer Dashboard' : page)
   const [panel, setPanel] = useState('')
-  const [menu, setMenu] = useState(false)
   const prefix = 'gigly.freelancer.' + name + '.'
-  const [availability, setAvailability] = useState(() => localStorage.getItem(prefix + 'availability') || 'Available within 1 week')
-  function open(label: string) {
-    setMenu(false)
-    if (label === 'My Projects') { setPanel(''); navigate('/freelancer/projects'); return }
-    if (label === 'Dashboard' || label === 'My Profile' || label === 'Invitations') {
-      setPanel('')
-      navigate(label === 'Invitations' ? '/freelancer/invitations' : label === 'Dashboard' ? '/freelancer/dashboard' : '/freelancer/profile')
-    } else setPanel(label)
-  }
+  const [availability, setAvailability] = useState(() => localStorage.getItem(prefix + 'availability') || availabilityOptions[0])
+  const fullName = savedProfile?.name ?? name
   if (!projectsPage && ((!invitationsPage && invitationId) || (!invitationsPage && !profilePage && section !== 'dashboard'))) return <Navigate to="/freelancer/dashboard" replace />
   const summaries: Record<string, string> = {
     Contracts: work ? work.project.title + ' · ' + amount(work.total) : 'No active contract.',
     Wallet: 'Balance: ' + wallet.balance + '. Confirmed earnings: ' + wallet.earnings + '.',
-
-    Notifications: (incoming ? 'New invitation for ' + incoming.project.title + '. ' : '') + (ms ? ms.title + ' · ' + statusLabel(ms.status) : ''),
     'Project Match': incoming?.match_explanation || 'No match explanation was provided.',
   }
-  return <div className="freelance">
-    <aside className={'freelance-side' + (menu ? ' mobile-open' : '')}>
-      <img src="/brand/gigly-logo.png" alt="Gigly" />
-      <nav aria-label="Freelancer workspace">{navigation.map(({ label, icon: Icon }) =>
-        <button key={label} aria-current={label === page ? 'page' : undefined} onClick={() => open(label)}
-          disabled={label === 'Messages' || label === 'Disputes'}><Icon />{label}</button>)}
-        <hr /><button disabled><Settings />Settings</button><button onClick={onLogout}><LogOut />Log out</button>
-      </nav>
-    </aside>
-    <div className="freelance-main">
-      <header className="freelance-top">
-        <button className="menu-button" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label="Toggle navigation"><Menu /></button>
-        {invitationsPage && <input aria-label="Search projects and invitations" className="inv-search" type="search" placeholder="Search projects, invitations…" value={params.get('q') ?? ''} onChange={e => {
-          const next = new URLSearchParams(params); next.set('q', e.target.value); navigate('/freelancer/invitations?' + next.toString(), { replace: true })
-        }} />}{!invitationsPage && <span className="crumb"><Home /><ChevronRight size={16} />{page}{projectsPage && work && selectedProject && <> <ChevronRight size={16} />{work.project.title}</>}</span>}
-        <button className="wallet-pill" onClick={() => open('Wallet')}><Wallet /> Wallet: {wallet.balance}</button>
-        <button className="bell" aria-label="Notifications" onClick={() => open('Notifications')}><Bell /></button>
-        <button className="account-button" onClick={() => open('Account')} aria-label="Account menu"><img src="/brand/rafi.png" alt="" /><ChevronDown size={16} /></button>
-      </header>
-      <main className="freelance-content">
-        {projectsPage ? <FreelancerProjects key={selectedProject ?? 'list'} data={data} id={selectedProject} mid={milestoneId} token={token} account={account} /> : invitationsPage ? <ReceivedInvitations key={invitationId ?? 'list'} inbox={inbox} id={invitationId} /> : profilePage ? <ProfilePage token={token} onSaved={setSavedProfile} /> : <><div className="welcome"><img src="/brand/rafi.png" alt="" /><div><h1>Welcome back, {(savedProfile?.name ?? name).split(' ')[0]}! 👋</h1><p>Here’s your freelance workspace overview.</p></div>
-          <label className="availability"><i />Availability: <select aria-label="Availability" value={availability} onChange={e => {
-            setAvailability(e.target.value); localStorage.setItem(prefix + 'availability', e.target.value)
-          }}>{['Available within 1 week', 'Available now', 'Unavailable'].map(a => <option key={a}>{a}</option>)}</select></label>
-        </div>
-        <div className="metrics">{metrics.map(({ label, icon: Icon }) => <div className="metric" key={label}>
-          <span className="code-tile"><Icon /></span><div><span>{label}</span><strong>{label === 'New Invitations' ? pending?.length ?? '—' : label === 'Active Projects' ? activeProjects.length : label.startsWith('Total') ? wallet.earnings : wallet.pending}</strong></div>
-        </div>)}</div>
-        <div className="overview-grid"><div className="work-list">
-          <section className="work-section"><h2>Incoming Invitation ({pending?.length ?? '—'})</h2>{incoming ? <div className="work-row">
-            <CodeTile /><div className="project-copy"><h3>{incoming.project.title}</h3><p>{incoming.project.description}</p>
-              <div className="skill-chips">{incoming.project.required_skills.map(s => <span key={s}>{s}</span>)}</div></div>
-            <div className="row-detail"><small>Project Match</small><div className="score-line"><b className="green-pill">{incoming.match_score !== null ? Math.round(incoming.match_score) + ' / 100' : '—'}</b><button aria-label="About project match" onClick={() => open('Project Match')}><Info size={17} /></button></div></div>
-            <button className="outline-action" onClick={() => navigate('/freelancer/invitations/' + encodeURIComponent(incoming.id))}>View Details</button>
-          </div> : <p>{inbox.error || (pending ? 'No pending invitations.' : 'Loading invitations…')}</p>}</section>
-          <section className="work-section"><h2>Active Projects ({activeProjects.length})</h2>{activeProjects.map(p=><div className="work-row" key={p.id}>
-            <CodeTile /><div className="project-copy"><h3>{p.title}</h3><p>{p.description}</p></div>
-            <div className="row-detail"><b className="green-pill">● In Progress</b>{work?.project.id===p.id && <small>{work.milestones.filter(m=>settled(m.status)).length} / {work.milestones.length} completed</small>}</div>
-            <button className="outline-action" onClick={()=>navigate(projectPath(p.id))}>View Project</button>
-          </div>)}</section>
-        </div><aside className="status-stack">
-          <section><div className="status-head"><h3><button onClick={() => open('My Profile')}>Profile Status</button></h3><b className="green-pill">● Published</b></div>
-            <p>Your profile is visible and can be matched with relevant projects.</p><div className="status-head"><b>Profile Completeness</b><b>80%</b></div><Progress value={80} label="Profile completeness" /></section>
-          <section><div className="status-head"><h3>Match Score (AI)</h3><b className="green-pill">94 / 100</b><Info size={17} aria-hidden /></div>
-            <details><summary>How it’s calculated <ChevronDown size={16} /></summary><p>This demo illustrates how skills and experience contribute to a match.</p></details></section>
-        </aside></div>
-        <section className="action-section"><h2>{ms?.status==='under_review'?'Awaiting Client Review':'Action Required'} <b className="count">{allMilestones?.filter(m=>m.eligible).length ?? Number(!!ms?.eligible)}</b></h2>
-          {(data.allDemo ?? (work?[work]:[])).filter(w=>['active','in_progress'].includes(w.project.status)).map(w=>{
-            const current=defaultMilestone(w.milestones)
-            if(!current)return null
-            return <div className="action-row" key={w.contractId}><CodeTile/><div className="project-copy"><h3>{w.project.title}</h3><p>Milestone {current.seq}: {current.title}</p><small className="date"><Calendar/>Due {formatDate(current.due)}</small></div>
-              <div className="milestones">{w.milestones.map(m=><div key={m.id}>{settled(m.status)?<CheckCircle2/>:<Circle/>}<span>Milestone {m.seq} – {m.title}</span><b>{amount(m.amount)} <small>({statusLabel(m.status)})</small></b></div>)}</div>
-              <button className="primary-action" onClick={()=>navigate(milestonePath(w.project.id,current.id)+(current.eligible?'/submit':''))}>{current.eligible?'Submit Deliverable':'View Milestone'}</button></div>
-          })}</section></>}
-      </main>
+
+  const nav: NavItem[] = [
+    { to: '/freelancer/dashboard', label: 'Dashboard', icon: <LayoutDashboard className={icon} /> },
+    { to: '/freelancer/invitations', label: 'Invitations', icon: <Mail className={icon} />, badge: pending?.length || undefined, match: () => invitationsPage },
+    { to: '/freelancer/projects', label: 'My Projects', icon: <FolderKanban className={icon} />, match: () => projectsPage },
+    { label: 'Contracts', icon: <FileText className={icon} />, onClick: () => setPanel('Contracts') },
+    { label: 'Messages', icon: <MessageSquare className={icon} />, disabled: true },
+    { label: 'Wallet', icon: <Wallet className={icon} />, onClick: () => setPanel('Wallet') },
+    { label: 'Disputes', icon: <Scale className={icon} />, disabled: true },
+    { to: '/freelancer/profile', label: 'My Profile', icon: <UserRound className={icon} /> },
+  ]
+
+  const notices = [
+    ...(incoming ? [{ id: 'invitation', title: 'New invitation', body: incoming.project.title, onSelect: () => navigate('/freelancer/invitations/' + encodeURIComponent(incoming.id)) }] : []),
+    ...(work && ms ? [{ id: 'milestone', title: ms.title, body: statusLabel(ms.status), onSelect: () => navigate(milestonePath(work.project.id, ms.id)) }] : []),
+  ]
+
+  const activeWork = (data.allDemo ?? (work ? [work] : [])).filter(w => ['active','in_progress'].includes(w.project.status))
+  const actionCount = allMilestones?.filter(m=>m.eligible).length ?? Number(!!ms?.eligible)
+
+  const dashboard = <div>
+    <PageHeader title={`${greeting()}, ${fullName.split(' ')[0]}`} subtitle="Here is your freelance work and what needs you today."
+      actions={<label className="flex items-center gap-2.5 text-small text-ink-muted">
+        <span className={'size-2 rounded-full ' + (availability === 'Unavailable' ? 'bg-line-control' : 'bg-success')} aria-hidden />
+        Availability
+        <Select aria-label="Availability" value={availability} onChange={e => {
+          setAvailability(e.target.value); localStorage.setItem(prefix + 'availability', e.target.value)
+        }}>{availabilityOptions.map(a => <option key={a}>{a}</option>)}</Select>
+      </label>} />
+
+    <section aria-label="Summary" className="stagger grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
+      <StatCard icon={<Mail />} label="New invitations" value={pending?.length ?? '—'} to="/freelancer/invitations" />
+      <StatCard icon={<FolderOpen />} label="Active projects" value={activeProjects.length} to="/freelancer/projects" />
+      <StatCard icon={<Coins />} label="Pending payments" value={<Money>{wallet.pending}</Money>} tone="accent" />
+      <StatCard icon={<CheckCircle2 />} label="Confirmed earnings" value={<Money>{wallet.earnings}</Money>} tone="success" />
+    </section>
+
+    <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="min-w-0 space-y-8">
+        <section aria-labelledby="action-title">
+          <SectionTitle id="action-title" action={actionCount ? <Badge tone="warning">{actionCount} to submit</Badge> : undefined}>
+            {ms?.status==='under_review' ? 'Awaiting client review' : 'Action required'}
+          </SectionTitle>
+          {activeWork.some(w => defaultMilestone(w.milestones)) ? <ul className="stagger space-y-3">{activeWork.map(w => {
+            const current = defaultMilestone(w.milestones)
+            if (!current) return null
+            return <li className="card p-4 md:p-5" key={w.contractId}>
+              <div className="flex flex-wrap items-center gap-4">
+                <ProjectIcon category={w.project.category} />
+                <div className="min-w-0 flex-1 basis-48">
+                  <h3 className="truncate text-body font-semibold">{w.project.title}</h3>
+                  <p className="text-small text-ink-muted">Milestone {current.seq}: {current.title}</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-caption text-ink-muted"><Calendar className="size-3.5" aria-hidden />Due {formatDate(current.due)}</p>
+                </div>
+                <Button variant={current.eligible ? 'primary' : 'secondary'} onClick={()=>navigate(milestonePath(w.project.id,current.id)+(current.eligible?'/submit':''))}>{current.eligible?'Submit Deliverable':'View Milestone'}</Button>
+              </div>
+              <ul className="mt-4 divide-y divide-line border-t border-line">{w.milestones.map(m => <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-small">
+                {settled(m.status) ? <CheckCircle2 className="size-4 text-success" aria-hidden /> : <Circle className="size-4 text-ink-muted" aria-hidden />}
+                <span className="min-w-0 flex-1">Milestone {m.seq}: {m.title}</span>
+                <span className="tabular font-semibold">{amount(m.amount)}</span>
+                <WorkStatusBadge status={m.status} />
+              </li>)}</ul>
+            </li>
+          })}</ul> : <p className="card px-5 py-4 text-small text-ink-muted">Nothing needs you right now.</p>}
+        </section>
+
+        <section aria-labelledby="invitation-title">
+          <SectionTitle id="invitation-title">Incoming invitation ({pending?.length ?? '—'})</SectionTitle>
+          {incoming ? <article className="card p-4 md:p-5">
+            <div className="flex flex-wrap items-start gap-4">
+              <ProjectIcon category={incoming.project.category} />
+              <div className="min-w-0 flex-1 basis-48">
+                <h3 className="text-body font-semibold">{incoming.project.title}</h3>
+                <p className="line-clamp-2 text-small text-ink-muted">{incoming.project.description}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">{incoming.project.required_skills.map(s => <SkillChip key={s}>{s}</SkillChip>)}</div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+              <button type="button" onClick={() => setPanel('Project Match')} aria-label="About project match" className="flex min-h-11 items-center gap-2 rounded-sm text-small text-ink-muted hover:text-brand">
+                Project match <Badge tone="success">{incoming.match_score !== null ? Math.round(incoming.match_score) + ' / 100' : '—'}</Badge><Info className="size-4" aria-hidden />
+              </button>
+              <LinkButton variant="secondary" to={'/freelancer/invitations/' + encodeURIComponent(incoming.id)}>View Details</LinkButton>
+            </div>
+          </article> : <p className="card px-5 py-4 text-small text-ink-muted">{inbox.error || (pending ? 'No pending invitations.' : 'Loading invitations…')}</p>}
+        </section>
+
+        <section aria-labelledby="projects-title">
+          <SectionTitle id="projects-title">Active projects ({activeProjects.length})</SectionTitle>
+          {activeProjects.length ? <ul className="stagger space-y-3">{activeProjects.map(p => <li className="card flex flex-wrap items-center gap-4 p-4 md:p-5" key={p.id}>
+            <ProjectIcon category={p.category} />
+            <div className="min-w-0 flex-1 basis-48">
+              <h3 className="truncate text-body font-semibold">{p.title}</h3>
+              <p className="line-clamp-2 text-small text-ink-muted">{p.description}</p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-caption text-ink-muted">
+                <WorkStatusBadge status={p.status} />
+                {work?.project.id===p.id && <span>{work.milestones.filter(m=>settled(m.status)).length} / {work.milestones.length} milestones completed</span>}
+              </div>
+            </div>
+            <LinkButton variant="secondary" to={projectPath(p.id)}>View Project</LinkButton>
+          </li>)}</ul> : <p className="card px-5 py-4 text-small text-ink-muted">No active projects yet.</p>}
+        </section>
+      </div>
+
+      <aside className="min-w-0 space-y-4">
+        <section className="card p-5">
+          <CardTitle action={<Badge tone="success" dot>Published</Badge>}>
+            <button type="button" className="rounded-sm hover:text-brand" onClick={() => navigate('/freelancer/profile')}>Profile status</button>
+          </CardTitle>
+          <p className="text-small text-ink-muted">Your profile is visible and can be matched with relevant projects.</p>
+          <div className="mb-1.5 mt-4 flex justify-between text-caption text-ink-muted"><span>Profile completeness</span><span className="tabular font-semibold text-ink">80%</span></div>
+          <Progress value={80} label="Profile completeness" />
+        </section>
+        <section className="card p-5">
+          <CardTitle action={<Badge tone="success">94 / 100</Badge>}>Match score (AI)</CardTitle>
+          <details className="group text-small">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-sm font-medium [&::-webkit-details-marker]:hidden">How it’s calculated <ChevronDown className="size-4 text-ink-muted transition-transform duration-200 ease-out group-open:rotate-180" aria-hidden /></summary>
+            <p className="text-ink-muted">This demo illustrates how skills and experience contribute to a match.</p>
+          </details>
+        </section>
+      </aside>
     </div>
-    <Dialog title={panel} open={!!panel} onClose={() => setPanel('')}>
-      {panel === 'Account' ? <><p>{savedProfile?.name ?? name} · Freelancer</p><button className="outline-action mr-2" onClick={() => open('My Profile')}>My Profile</button><button className="outline-action mt-4" onClick={onLogout}>Log out</button></> :
-        <p>{summaries[panel]}</p>}
-    </Dialog>
   </div>
+
+  return <>
+    <AppShell
+      home="/freelancer/dashboard"
+      nav={nav}
+      footerNav={[
+        { label: 'Settings', icon: <Settings className={icon} />, disabled: true },
+        { label: 'Log out', icon: <LogOut className={icon} />, onClick: onLogout },
+      ]}
+      tabs={[
+        { to: '/freelancer/dashboard', label: 'Home', icon: <Home className={icon} /> },
+        { to: '/freelancer/invitations', label: 'Invitations', icon: <Mail className={icon} />, match: () => invitationsPage },
+        { to: '/freelancer/projects', label: 'Projects', icon: <FolderKanban className={icon} />, match: () => projectsPage },
+        { to: '/freelancer/profile', label: 'Profile', icon: <UserRound className={icon} /> },
+      ]}
+      search={invitationsPage ? { 'aria-label': 'Search projects and invitations', placeholder: 'Search projects, invitations…', value: params.get('q') ?? '', onChange: e => {
+        const next = new URLSearchParams(params); next.set('q', e.target.value); navigate('/freelancer/invitations?' + next.toString(), { replace: true })
+      } } : undefined}
+      // Kunci per halaman, bukan per URL: pindah dari milestone ke /submit tidak me-reset form.
+      pageKey={[page, selectedProject, invitationsPage ? invitationId : ''].join('|')}
+      tools={<>
+        <WalletChip value={wallet.balance} onClick={() => setPanel('Wallet')} />
+        <NotificationsMenu items={notices} />
+        <AccountMenu initials={initialsOf(fullName)} name={fullName} caption="Freelancer"
+          actions={[{ label: 'My Profile', icon: <UserRound className="size-4" />, onClick: () => navigate('/freelancer/profile') }]} onLogout={onLogout} />
+      </>}
+    >
+      {projectsPage ? <FreelancerProjects key={selectedProject ?? 'list'} data={data} id={selectedProject} mid={milestoneId} token={token} account={account} />
+        : invitationsPage ? <ReceivedInvitations key={invitationId ?? 'list'} inbox={inbox} id={invitationId} />
+        : profilePage ? <ProfilePage token={token} onSaved={setSavedProfile} />
+        : dashboard}
+    </AppShell>
+    <Dialog title={panel} open={!!panel} onClose={() => setPanel('')}><p>{summaries[panel]}</p></Dialog>
+  </>
 }
