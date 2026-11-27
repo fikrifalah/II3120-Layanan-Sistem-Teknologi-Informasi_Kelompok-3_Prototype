@@ -65,7 +65,7 @@ def test_legacy_schema_keeps_seed_data_and_upgrades_changed_tables(engine):
 
 
 def test_existing_current_dispute_is_preserved_when_missing_tables_are_recreated(engine):
-    migrate(engine)
+    migrate(engine, "0002")  # skema PR #6/#7 yang dibuat create_all sebelum Alembic dipasang
     with engine.begin() as c:
         c.execute(sa.text('INSERT INTO "user" (id, name, email, role) VALUES '
                           "(1, 'Rina', 'rina@x.id', 'client'), "

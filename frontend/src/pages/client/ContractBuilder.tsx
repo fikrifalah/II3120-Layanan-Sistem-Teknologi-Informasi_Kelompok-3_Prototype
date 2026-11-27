@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { ArrowDown, ArrowUp, CalendarDays, Coins, Info, Layers, Loader2, Plus, Send, Trash2 } from 'lucide-react'
 import { useStore } from '../../services/store'
-import { contractsApiEnabled } from '../../services/clientContracts'
 import { formatSim } from '../../lib/format'
 import { usePageTitle } from '../../lib/usePageTitle'
 import type { Contract, Milestone } from '../../types/domain'
@@ -104,9 +103,7 @@ export default function ContractBuilder() {
       toast({ tone: 'danger', title: err instanceof Error ? err.message : 'Unable to send the contract.' })
       return
     }
-    toast(contractsApiEnabled
-      ? { tone: 'success', title: 'Contract recorded', body: 'Fund the escrow to start the work.' }
-      : { tone: 'info', title: 'Sent for approval', body: `${c?.identity.name ?? 'The freelancer'} will review version ${contract.version}.` })
+    toast({ tone: 'info', title: 'Sent for approval', body: `${c?.identity.name ?? 'The freelancer'} will review version ${contract.version}.` })
   }
 
   return (

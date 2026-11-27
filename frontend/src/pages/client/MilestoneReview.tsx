@@ -4,7 +4,7 @@ import { currentToken } from '../../services/auth'
 import { paidAmount } from '../../services/clientContracts'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ClipboardList, Clock, Download, ExternalLink, FileArchive, FileCode2, FileText, GitBranch, History, Info, Link2, Lock, Scale } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, RotateCcw, Check, CheckCircle2, ClipboardList, Clock, Download, ExternalLink, FileArchive, FileCode2, FileText, GitBranch, History, Info, Link2, Lock, Scale } from 'lucide-react'
 import { useStore } from '../../services/store'
 import { formatDateTime, formatSim } from '../../lib/format'
 import { usePageTitle } from '../../lib/usePageTitle'
@@ -51,7 +51,7 @@ export default function MilestoneReview() {
   usePageTitle(m ? `Review · Milestone ${m.seq}` : 'Review')
 
   const [checked, setChecked] = useState<Record<string, boolean>>({})
-  const [dialog, setDialog] = useState<null | 'approve' | 'dispute'>(null)
+  const [dialog, setDialog] = useState<null | 'approve' | 'revision' | 'dispute'>(null)
   const [note, setNote] = useState('')
   const [noteError, setNoteError] = useState('')
   const [releasing, setReleasing] = useState(false)
@@ -62,11 +62,13 @@ export default function MilestoneReview() {
   const c = store.getCandidate(projectId, contract.candidateId)
   const sub = m.submissions.at(-1)
   const canAct = m.status === 'under_review'
+  // Dokumen: sengketa hanya untuk hasil perbaikan yang tetap ditolak, jadi minta revisi dulu.
+  const canDispute = canAct && (m.revisionCount ?? 0) >= 1
   const allMet = m.criteria.every((cr) => checked[cr.id])
   const unmet = m.criteria.filter((cr) => !checked[cr.id])
   const paidBefore = contract.milestones.reduce((n, x) => n + paidAmount(x), 0)
 
-  const openDialog = (d: 'dispute') => {
+  const openDialog = (d: 'revision' | 'dispute') => {
     setNote('')
     setNoteError('')
     setDialog(d)
@@ -88,9 +90,21 @@ export default function MilestoneReview() {
       setNoteError('Write at least 20 characters describing the issue against the agreed criteria.')
       return
     }
-    try { await store.raiseDispute(contract.id, m.id, note.trim()) } catch (e) {setNoteError(e instanceof Error ? e.message : 'Unable to open dispute.');return}
-    toast({ tone: 'danger', title: 'Dispute raised', body: 'The milestone is frozen for arbitration.' })
-    setDialog(null)
+    setReleasing(true)
+    try {
+      if (dialog === 'revision') {
+        await store.requestRevision(contract.id, m.id, note.trim())
+        toast({ tone: 'info', title: 'Revision requested', body: `${c?.identity.name ?? 'The freelancer'} will resubmit. Funds stay in escrow.` })
+      } else {
+        await store.raiseDispute(contract.id, m.id, note.trim())
+        toast({ tone: 'danger', title: 'Dispute raised', body: 'The milestone is frozen for arbitration.' })
+      }
+      setDialog(null)
+    } catch (e) {
+      setNoteError(e instanceof Error ? e.message : 'Request failed. Please retry.')
+    } finally {
+      setReleasing(false)
+    }
   }
 
   return (
@@ -130,6 +144,11 @@ export default function MilestoneReview() {
       {m.status === 'disputed' && (
         <Alert tone="danger" title="Disputed — funds are frozen" className="mb-5" action={<LinkButton to="/client/disputes" size="sm" variant="danger">Open dispute</LinkButton>}>
           {m.disputeReason}
+        </Alert>
+      )}
+      {m.status === 'revision_required' && (
+        <Alert tone="brand" title={`Revision #${m.revisionCount ?? 1} requested: waiting for ${c?.identity.name ?? 'the freelancer'} to resubmit`} className="mb-5">
+          <span className="whitespace-pre-wrap">{m.revisionNote}</span>
         </Alert>
       )}
       {m.status === 'released' && (
@@ -262,11 +281,15 @@ export default function MilestoneReview() {
                 <Button block disabled={!allMet} icon={<Check className="size-4" aria-hidden />} onClick={() => setDialog('approve')}>
                   Approve & release payment
                 </Button>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="danger" icon={<AlertTriangle className="size-4" aria-hidden />} onClick={() => openDialog('dispute')}>
-                    Raise dispute
-                  </Button>
-                </div>
+                <Button block variant="secondary" icon={<RotateCcw className="size-4" aria-hidden />} onClick={() => openDialog('revision')}>
+                  Request revision
+                </Button>
+                <Button block variant="danger" disabled={!canDispute} icon={<AlertTriangle className="size-4" aria-hidden />} onClick={() => openDialog('dispute')}>
+                  Raise dispute
+                </Button>
+                {!canDispute && (
+                  <p className="text-caption text-ink-muted">Not satisfied? Request a revision first. A dispute opens if the revised work still misses the criteria.</p>
+                )}
               </div>
             </>
           ) : (
@@ -294,25 +317,32 @@ export default function MilestoneReview() {
       </Dialog>
 
       <Dialog
-        open={dialog === 'dispute'}
-        onClose={() => setDialog(null)}
+        open={dialog === 'revision' || dialog === 'dispute'}
+        onClose={() => !releasing && setDialog(null)}
         size="lg"
-        title="Raise a dispute"
+        title={dialog === 'revision' ? 'Request a revision' : 'Raise a dispute'}
         footer={
           <>
-            <Button variant="quiet" onClick={() => setDialog(null)}>
+            <Button variant="quiet" onClick={() => setDialog(null)} disabled={releasing}>
               Cancel
             </Button>
-            <Button variant={dialog === 'dispute' ? 'danger' : 'primary'} icon={dialog === 'dispute' ? <Scale className="size-4" aria-hidden /> : undefined} onClick={submitNote}>
-              Raise dispute
+            <Button
+              variant={dialog === 'dispute' ? 'danger' : 'primary'}
+              loading={releasing}
+              icon={dialog === 'dispute' ? <Scale className="size-4" aria-hidden /> : <RotateCcw className="size-4" aria-hidden />}
+              onClick={submitNote}
+            >
+              {dialog === 'revision' ? 'Send revision request' : 'Raise dispute'}
             </Button>
           </>
         }
       >
         <p className="mb-4">
-          The arbiter will review the agreed criteria, submitted work and supporting evidence.
+          {dialog === 'revision'
+            ? 'Explain which agreed criteria the work does not meet yet. The funds stay in escrow and the review clock stops until the freelancer resubmits.'
+            : 'The arbiter will review the agreed criteria, submitted work and supporting evidence.'}
         </p>
-        <Field label="Reason for the dispute" required error={noteError}>
+        <Field label={dialog === 'revision' ? 'What needs to change' : 'Reason for the dispute'} required error={noteError}>
           {(p) => <Textarea id={p.id} aria-describedby={p.describedBy} invalid={p.invalid} rows={5} value={note} onChange={(e) => setNote(e.target.value)} />}
         </Field>
       </Dialog>
