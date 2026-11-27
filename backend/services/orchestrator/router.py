@@ -2,9 +2,11 @@
 
 Endpoint dokumen (Tabel 3.1.1):
   POST /contracts                 createContractDraft        (hash SHA-256 dokumen kesepakatan)
+  POST /contracts/{id}/accept     freelancer menyetujui kontrak (BPMN To-Be no. 3)
   POST /escrow/lock               createAndLockEscrow        (kunci seluruh dana milestone)
   POST /milestones/{id}/submit    submitMilestoneDeliverable (hash hasil kerja on-chain)
   POST /milestones/{id}/approve   releaseMilestonePayment    (cairkan ke freelancer)
+  POST /milestones/{id}/request-revision  client meminta perbaikan sebelum sengketa
   POST /escrow/{id}/reassign      reassignRemainingMilestones (handover freelancer pengganti)
   POST /escrow/{id}/close         closeContract
 Auto-release setelah 5 hari review: services/orchestrator/auto_release.py.
@@ -41,7 +43,8 @@ MAX_FILE_BYTES = 20 * 1024 * 1024
 MAX_SUBMISSION_FILES = 5
 FAUCET_DEFAULT = 20_000
 TOKEN_SYMBOL = wf.TOKEN_SYMBOL
-PROJECT_STATUS = {"draft": "awaiting_funding", "active": "in_progress", "completed": "completed"}
+PROJECT_STATUS = {"draft": "awaiting_acceptance", "agreed": "awaiting_funding", "active": "in_progress",
+                  "completed": "completed"}
 
 router = APIRouter(prefix="/api/v1", tags=["Orchestrator"])
 
@@ -92,6 +95,10 @@ class SubmitRequest(BaseModel):
     repository_revision: Optional[str] = PField(default=None, max_length=200)
     demo_url: Optional[str] = PField(default=None, max_length=2000)
     declared_criteria: list[DeclaredCriterion] = PField(default_factory=list)
+
+
+class RevisionRequest(BaseModel):
+    notes: str = PField(min_length=10, max_length=4000, description="Kriteria yang belum terpenuhi")
 
 
 class ApproveRequest(BaseModel):
@@ -198,11 +205,11 @@ def _allowed_actions(m: Milestone, contract: Contract, user: User) -> list[str]:
     if contract.status != "active":
         return []
     actions = []
-    if user.id == contract.freelancer_id and m.status == "in_progress":
+    if user.id == contract.freelancer_id and m.status in ("in_progress", "revision_required"):
         actions.append("submit")
     if user.id == contract.client_id and m.status == "under_review":
-        actions.append("approve")
-    if m.status in ("in_progress", "under_review"):
+        actions += ["approve", "request_revision"]
+    if wf.dispute_block_reason(m, contract, user.id) is None:
         actions.append("dispute")
     return actions
 
@@ -220,7 +227,7 @@ def _milestone_view(session: Session, m: Milestone, contract: Contract, user: Us
         "status": m.status, "allowed_actions": _allowed_actions(m, contract, user),
         "active_transaction_id": None, "review_deadline": wf.iso(review_deadline),
         "submitted_at": wf.iso(m.submitted_at), "settled_at": wf.iso(m.settled_at),
-        "deliverable_hash": m.deliverable_hash,
+        "deliverable_hash": m.deliverable_hash, "revision_count": m.revision_count, "revision_note": m.revision_note,
         "criteria": [{"id": c.id, "description": c.description, "is_mandatory": c.is_mandatory} for c in criteria],
         "current_submission": _submission_view(session, sub) if sub else None,
         "dispute_id": dispute.id if dispute else None,
@@ -243,8 +250,17 @@ def _escrow_view(session: Session, contract: Contract) -> Optional[dict]:
     return {"status": escrow.status, "locked_amount": wf.amount_str(escrow.locked_amount),
             "remaining_locked_amount": wf.amount_str(remaining), "funded_at": wf.iso(escrow.funded_at),
             "transaction_hash": escrow.tx_hash, "close_transaction_hash": escrow.close_tx_hash,
+            "closed_at": wf.iso(escrow.closed_at),
             "smart_contract_address": contract.onchain_contract_address,
             "onchain_contract_id": contract.onchain_contract_id}
+
+
+def _contract_actions(contract: Contract, user: User) -> list[str]:
+    if contract.status == "draft" and user.id == contract.freelancer_id:
+        return ["accept"]
+    if contract.status == "agreed" and user.id == contract.client_id:
+        return ["fund"]
+    return []
 
 
 def _contract_view(session: Session, contract: Contract, user: User) -> dict:
@@ -253,6 +269,7 @@ def _contract_view(session: Session, contract: Contract, user: User) -> dict:
         "total_amount": wf.amount_str(contract.total_amount), "scope": contract.scope,
         "start_at": wf.iso(contract.start_at), "end_at": wf.iso(contract.end_at),
         "contract_hash": contract.contract_hash, "terms": json.loads(contract.terms_json or "{}"),
+        "accepted_at": wf.iso(contract.accepted_at), "allowed_actions": _contract_actions(contract, user),
         "client": _person(session.get(User, contract.client_id)),
         "freelancer": _person(session.get(User, contract.freelancer_id)),
         "escrow": _escrow_view(session, contract),
@@ -310,7 +327,8 @@ def create_contract_draft(req: CreateContractRequest, user: User = Depends(curre
         session.add(row)
         session.flush()
         session.add_all(MilestoneCriterion(milestone_id=row.id, **c) for c in spec["criteria"])
-    wf.log_activity(session, contract.id, f"Contract drafted · SHA-256 {contract.contract_hash[:12]}…")
+    wf.log_activity(session, contract.id,
+                    f"Contract drafted · SHA-256 {contract.contract_hash[:12]}… · waiting for freelancer approval")
     session.commit()
     session.refresh(contract)
     return {"data": {"contract_id": contract.id, "sha256_hash": contract.contract_hash, "status": contract.status,
@@ -323,6 +341,24 @@ def get_contract(contract_id: int, user: User = Depends(current_user), session: 
     return {"data": {**_contract_view(session, contract, user), "integrity": _integrity(contract)}}
 
 
+@router.post("/contracts/{contract_id}/accept")
+def accept_contract(contract_id: int, user: User = Depends(current_user), session: Session = Depends(get_db)) -> dict:
+    """Freelancer menyetujui kontrak (ruang lingkup, milestone, kriteria penerimaan) sebelum dana dikunci."""
+    contract = _contract(session, contract_id, user)
+    if user.id != contract.freelancer_id:
+        raise HTTPException(status_code=403, detail="Hanya freelancer kontrak ini yang boleh menyetujui.")
+    if contract.status != "draft":
+        raise HTTPException(status_code=409, detail=f"Kontrak berstatus {contract.status}, bukan draft.")
+    contract.status = "agreed"
+    contract.accepted_at = wf.now()
+    session.add(contract)
+    wf.log_activity(session, contract.id, f"Contract accepted by {user.name}; waiting for escrow funding")
+    session.commit()
+    session.refresh(contract)
+    return {"data": {"contract_id": contract.id, "status": contract.status, "sha256_hash": contract.contract_hash,
+                     "accepted_at": wf.iso(contract.accepted_at), "contract": _contract_view(session, contract, user)}}
+
+
 # ------------------------------------------------------------------ escrow (IEscrowService)
 
 @router.post("/escrow/lock", status_code=201)
@@ -330,7 +366,9 @@ def create_and_lock_escrow(req: LockEscrowRequest, user: User = Depends(current_
                            session: Session = Depends(get_db)) -> dict:
     """createAndLockEscrow: catat hash kontrak on-chain dan kunci seluruh dana milestone sekaligus."""
     contract = _own_contract(session, req.contract_id, user)
-    if contract.status != "draft":
+    if contract.status == "draft":
+        raise HTTPException(status_code=409, detail="Kontrak belum disetujui freelancer.")
+    if contract.status != "agreed":
         raise HTTPException(status_code=409, detail="Escrow kontrak ini sudah dikunci.")
     rows = wf.milestones_of(session, contract.id)
     amounts = [wf.to_wei(m.amount) for m in rows]
@@ -384,12 +422,13 @@ def reassign_remaining_milestones(contract_id: int, req: ReassignRequest, user: 
     # Sama dengan Escrow.sol: milestone LOCKED/SUBMITTED pindah ke freelancer baru dan kembali LOCKED.
     moved = 0
     for m in wf.milestones_of(session, contract.id):
-        if m.status not in ("pending", "in_progress", "under_review"):
+        if m.status not in ("pending", "in_progress", "under_review", "revision_required"):
             continue
         moved += 1
-        if m.status == "under_review":
+        if m.status in ("under_review", "revision_required"):
             m.status = "in_progress"
-        m.submitted_at = m.deliverable_hash = m.deliverable_url = None
+        m.submitted_at = m.deliverable_hash = m.deliverable_url = m.revision_note = None
+        m.revision_count = 0
         session.add(m)
         for sub in session.exec(select(Submission).where(Submission.milestone_id == m.id,
                                                          Submission.status == "submitted")):
@@ -424,10 +463,12 @@ def close_contract(contract_id: int, user: User = Depends(current_user), session
     escrow = session.exec(select(Escrow).where(Escrow.contract_id == contract.id)).one()
     escrow.status = "closed"
     escrow.close_tx_hash = tx["tx_hash"]
+    escrow.closed_at = wf.now()
     session.add(escrow)
     wf.log_activity(session, contract.id, "Contract closed on-chain")
     session.commit()
-    return {"data": {"status": "closed", "contract_id": contract.id, "transaction_hash": tx["tx_hash"]}}
+    return {"data": {"status": "closed", "final_status": contract.status, "contract_id": contract.id,
+                     "transaction_hash": tx["tx_hash"], "closed_at": wf.iso(escrow.closed_at)}}
 
 
 # ------------------------------------------------------------------ milestone
@@ -456,8 +497,9 @@ def submit_milestone_deliverable(
         if replay:
             return {"data": _milestone_view(session, milestone, contract, user)}
     _require_active(contract)
-    if milestone.status != "in_progress":
+    if milestone.status not in ("in_progress", "revision_required"):
         raise HTTPException(status_code=409, detail=f"Milestone berstatus {milestone.status}, bukan in_progress.")
+    resubmission = milestone.status == "revision_required"
 
     repo, demo = (req.repository_url or "").strip() or None, (req.demo_url or "").strip() or None
     revision = (req.repository_revision or "").strip() or None
@@ -500,7 +542,8 @@ def submit_milestone_deliverable(
     milestone.deliverable_hash = digest
     milestone.deliverable_url = repo or demo or (f"/api/v1/files/{files[0].id}/content" if files else None)
     session.add(milestone)
-    wf.log_activity(session, contract.id, f"Milestone {milestone.sequence} submitted for review by {user.name}")
+    verb = f"resubmitted after revision #{milestone.revision_count}" if resubmission else "submitted for review"
+    wf.log_activity(session, contract.id, f"Milestone {milestone.sequence} {verb} by {user.name}")
     session.commit()
     return {"data": _milestone_view(session, milestone, contract, user)}
 
@@ -528,6 +571,37 @@ def release_milestone_payment(milestone_id: int, req: ApproveRequest = Body(defa
                      "disbursed_amount": wf.amount_str(milestone.amount),
                      "recipient_wallet": chain.user_address(contract.freelancer_id), "transaction_hash": tx["tx_hash"],
                      "remaining_escrow_balance": wf.amount_str(remaining),
+                     "milestone": _milestone_view(session, milestone, contract, user)}}
+
+
+@router.post("/milestones/{milestone_id}/request-revision")
+def request_revision(milestone_id: int, req: RevisionRequest, user: User = Depends(current_user),
+                     session: Session = Depends(get_db)) -> dict:
+    """Client menolak hasil dan meminta perbaikan: dana tetap terkunci, timer review berhenti sampai submit ulang."""
+    milestone, contract = _milestone(session, milestone_id, user)
+    _require_role(user, "client")
+    if user.id != contract.client_id:
+        raise HTTPException(status_code=403, detail="Hanya client kontrak ini yang boleh meminta perbaikan.")
+    _require_active(contract)
+    if milestone.status != "under_review":
+        raise HTTPException(status_code=409, detail=f"Milestone berstatus {milestone.status}, bukan under_review.")
+    tx = wf.chain_call(chain.request_revision_onchain, user.id, contract.onchain_contract_id,
+                       wf.onchain_index(milestone))
+    for old in session.exec(select(Submission).where(Submission.milestone_id == milestone.id,
+                                                     Submission.status == "submitted")):
+        old.status = "superseded"  # hasil yang ditolak tetap tersimpan sebagai riwayat
+        session.add(old)
+    milestone.status = "revision_required"
+    milestone.revision_count += 1
+    milestone.revision_note = req.notes.strip()
+    milestone.submitted_at = None
+    session.add(milestone)
+    wf.log_activity(session, contract.id,
+                    f"Revision #{milestone.revision_count} requested for Milestone {milestone.sequence}: "
+                    f"{milestone.revision_note}")
+    session.commit()
+    return {"data": {"status": "revision_required", "milestone_id": milestone.id,
+                     "revision_count": milestone.revision_count, "transaction_hash": tx["tx_hash"],
                      "milestone": _milestone_view(session, milestone, contract, user)}}
 
 
@@ -559,7 +633,8 @@ def project_workspace(project_id: int, user: User = Depends(current_user), sessi
         "milestones": [_milestone_view(session, m, contract, user) for m in milestones],
         "contract": {"id": contract.id, "status": contract.status,
                      "total_amount": wf.amount_str(contract.total_amount), "contract_hash": contract.contract_hash,
-                     "onchain_contract_id": contract.onchain_contract_id},
+                     "onchain_contract_id": contract.onchain_contract_id,
+                     "accepted_at": wf.iso(contract.accepted_at), "allowed_actions": _contract_actions(contract, user)},
         "agreement": {"version": 1, "hash": contract.contract_hash, "terms": {"scope": contract.scope}},
         "escrow": _escrow_view(session, contract),
         "client": _person(session.get(User, contract.client_id)),
@@ -624,7 +699,7 @@ def _wallet_view(session: Session, user: User) -> dict:
     except Exception:  # blockchain mati: saldo tidak diketahui
         balance = None
     rows = session.exec(select(Milestone, Contract).join(Contract, Milestone.contract_id == Contract.id)
-                        .where(Contract.status != "draft",
+                        .where(Contract.status.in_(("active", "completed")),
                                or_(Contract.client_id == user.id, Contract.freelancer_id == user.id))).all()
     as_freelancer = [m for m, c in rows if c.freelancer_id == user.id]
     as_client = [m for m, c in rows if c.client_id == user.id]

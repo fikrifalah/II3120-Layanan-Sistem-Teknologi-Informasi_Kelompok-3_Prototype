@@ -25,6 +25,10 @@ export interface WorkMilestone {
   eligible: boolean
   criteria: { id: string; text: string; required: boolean }[]
   deadline?: string
+  /** Catatan perbaikan dari client (status revision_required). */
+  revisionNote?: string
+  /** Backend mengizinkan freelancer mengajukan sengketa (menolak permintaan perbaikan). */
+  canDispute?: boolean
   transaction?: number
   submission?: { title: string; notes: string; files: WorkFile[]; at?: string; revision?: string; criteria?: string[] }
 }
@@ -42,12 +46,19 @@ export interface Work {
   events: { text: string; at: string }[]
   files: WorkFile[]
   invitationId?: string
+  /** Kontrak menunggu persetujuan freelancer sebelum client mengunci dana. */
+  canAccept?: boolean
 }
 export const statusLabel = (s: string) =>
   ({
     active: 'In Progress',
     in_progress: 'In Progress',
     under_review: 'Awaiting Client Review',
+    revision_required: 'Revision Requested',
+    disputed: 'In Dispute',
+    split: 'Split by Arbiter',
+    awaiting_acceptance: 'Awaiting Your Approval',
+    awaiting_funding: 'Awaiting Escrow Funding',
     completed: 'Completed',
     pending: 'Not Started',
     released: 'Paid',
@@ -59,7 +70,9 @@ export function amount(s: string) {
 }
 export const settled = (s: string) => ['released', 'refunded', 'split'].includes(s)
 export const defaultMilestone = (ms: WorkMilestone[]) =>
-  ms.find((m) => ['in_progress', 'under_review', 'pending_confirmation', 'disputed'].includes(m.status)) ?? ms.at(-1)
+  ms.find((m) => ['in_progress', 'revision_required', 'under_review', 'pending_confirmation', 'disputed'].includes(m.status)) ??
+  ms.find((m) => !settled(m.status)) ??
+  ms.at(-1)
 const base = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 async function api(path: string, token: string, init: RequestInit = {}) {
   const r = await fetch(base + path, { ...init, headers: { Authorization: 'Bearer ' + token, ...init.headers } })
@@ -92,6 +105,7 @@ interface ApiMilestone {
   allowed_actions: string[]
   active_transaction_id: number | null
   review_deadline: string | null
+  revision_note?: string | null
   criteria?: { id: number; description: string; is_mandatory: boolean }[]
   current_submission?: {
     title: string
@@ -108,7 +122,7 @@ interface ApiMilestone {
 interface ApiWork {
   project: ApiProject
   milestones: ApiMilestone[]
-  contract: { id: number; status: string; total_amount: string }
+  contract: { id: number; status: string; total_amount: string; allowed_actions?: string[] }
   agreement: { version: number; terms: { scope: string; scope_summary?: string } }
   escrow: { status: string; remaining_locked_amount: string; funded_at: string }
   recent_activity: { summary: string; created_at: string }[]
@@ -136,12 +150,14 @@ function apiMilestone(m: ApiMilestone, funded: boolean): WorkMilestone {
     status: sub?.status === 'pending_confirmation' ? sub.status : m.status,
     eligible:
       funded &&
-      m.status === 'in_progress' &&
+      ['in_progress', 'revision_required'].includes(m.status) &&
       !m.active_transaction_id &&
       (!sub || sub.status === 'failed') &&
       m.allowed_actions.some((x) => ['submit', 'submit_deliverable', 'submit_milestone'].includes(x)),
     transaction: m.active_transaction_id ?? undefined,
     deadline: m.review_deadline ?? undefined,
+    revisionNote: m.status === 'revision_required' ? m.revision_note ?? undefined : undefined,
+    canDispute: m.allowed_actions.includes('dispute'),
     criteria: (m.criteria ?? []).map((x) => ({ id: String(x.id), text: x.description, required: x.is_mandatory })),
     submission:
       sub && sub.status !== 'failed'
@@ -162,7 +178,7 @@ export function useProjectWork(token: string, id?: string, mid?: string, enabled
     () =>
       workspace?.contracts
         .filter((c) => c.candidateId === demoRecipient && ['active', 'closed'].includes(c.status))
-        .flatMap((c) => {
+        .flatMap((c): Work[] => {
           const p = workspace.projects.find((p) => p.id === c.projectId)
           if (!p) return []
           const milestones: WorkMilestone[] = c.milestones.map((m) => {
@@ -259,6 +275,7 @@ export function useProjectWork(token: string, id?: string, mid?: string, enabled
           fundedAt: w.escrow?.funded_at,
           events: w.recent_activity.map((e) => ({ text: e.summary, at: e.created_at })),
           files: w.files.map(apiFile),
+          canAccept: w.contract.allowed_actions?.includes('accept'),
         }
       }
       if (!controller.signal.aborted) setRemote({ key, projects, work })
@@ -284,6 +301,33 @@ export function useProjectWork(token: string, id?: string, mid?: string, enabled
     reload,
   }
 }
+/** Pesan error backend (`detail`) agar alasan penolakan terlihat oleh pengguna. */
+async function postApi(path: string, token: string, body: BodyInit, json = false) {
+  const r = await fetch(base + path, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, ...(json && { 'Content-Type': 'application/json' }) },
+    body,
+  })
+  if (!r.ok) {
+    const detail = (await r.json().catch(() => null))?.detail
+    throw new Error(typeof detail === 'string' ? detail : 'Request failed (' + r.status + '). Please retry.')
+  }
+  return r.json()
+}
+
+/** Freelancer menyetujui kontrak (ruang lingkup, milestone, kriteria) sebelum dana dikunci client. */
+export const acceptContractApi = (token: string, contractId: string) =>
+  postApi('/contracts/' + encodeURIComponent(contractId) + '/accept', token, '{}', true)
+
+/** Sengketa atas permintaan perbaikan yang tidak disetujui freelancer, beserta bukti opsional. */
+export function raiseDisputeApi(token: string, milestoneId: string, reason: string, evidence: File[]) {
+  const body = new FormData()
+  body.append('milestone_id', milestoneId)
+  body.append('reason', reason)
+  for (const f of evidence) body.append('evidence', f)
+  return postApi('/disputes', token, body)
+}
+
 export async function downloadApiFile(token: string, file: WorkFile) {
   const r = await api('/files/' + file.apiId + '/content', token)
   downloadBlob(await r.blob(), file.name)

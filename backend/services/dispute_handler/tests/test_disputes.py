@@ -68,8 +68,10 @@ def env(tmp_path, monkeypatch, postgres_engine):
                             total_amount=15000, status="active", onchain_contract_id=1)
         s.add(contract)
         s.flush()
-        ms = [Milestone(contract_id=contract.id, sequence=i, title=t, amount=a, status=st)
-              for i, (t, a, st) in enumerate([("Desain API", 6000, "under_review"), ("Deployment", 9000, "pending")], 1)]
+        # M1: hasil revisi sedang direview (client sudah pernah meminta perbaikan) -> boleh disengketakan.
+        ms = [Milestone(contract_id=contract.id, sequence=i, title=t, amount=a, status=st, revision_count=rc)
+              for i, (t, a, st, rc) in enumerate([("Desain API", 6000, "under_review", 1),
+                                                   ("Deployment", 9000, "pending", 0)], 1)]
         s.add_all(ms)
         for name, u in users.items():
             s.add(AuthToken(token=name, user_id=u.id, expires_at=time.time() + 3600))
@@ -114,9 +116,31 @@ def test_client_raises_dispute_with_hashed_evidence(env):
     assert env["fake"].calls == [("raise", 1, 0, CLIENT_WALLET)]
 
 
+def _set_milestone(env, key, **fields):
+    with Session(env["engine"]) as s:
+        m = s.get(Milestone, env["ids"][key])
+        for k, v in fields.items():
+            setattr(m, k, v)
+        s.add(m)
+        s.commit()
+
+
 def test_freelancer_raise_is_signed_with_freelancer_wallet(env):
-    assert _raise(env, who="freelancer", milestone="m2").status_code == 201
-    assert env["fake"].calls == [("raise", 1, 1, FREELANCER_WALLET)]
+    _set_milestone(env, "m1", status="revision_required")  # freelancer menolak permintaan perbaikan
+    env["fake"].statuses[0] = "LOCKED"
+    assert _raise(env, who="freelancer").status_code == 201
+    assert env["fake"].calls == [("raise", 1, 0, FREELANCER_WALLET)]
+
+
+def test_dispute_only_after_revision_is_not_agreed(env):
+    _set_milestone(env, "m1", revision_count=0)
+    r = _raise(env)
+    assert r.status_code == 409 and "Minta perbaikan dulu" in r.json()["detail"]
+    r = _raise(env, who="freelancer")  # hasil masih direview, belum ada permintaan perbaikan
+    assert r.status_code == 409 and "permintaan perbaikan" in r.json()["detail"]
+    _set_milestone(env, "m1", status="in_progress")
+    assert _raise(env).status_code == 409
+    assert env["fake"].calls == []
 
 
 def test_raise_rejections(env):
@@ -128,6 +152,7 @@ def test_raise_rejections(env):
         c.onchain_contract_id = None
         s.add(c)
         s.commit()
+    _set_milestone(env, "m2", status="under_review", revision_count=1)
     r = _raise(env, milestone="m2")
     assert r.status_code == 409 and "belum dikunci" in r.json()["detail"]
 
@@ -157,6 +182,8 @@ def test_split_verdict_pays_out_and_closes_dispute(env):
     d = r.json()["data"]
     assert d["status"] == "resolved"
     assert d["milestone"]["status"] == "split"
+    assert (d["onchain_status"], d["verdict_action"], d["freelancer_payout"], d["client_refund"], d["transaction_hash"]) == (
+        "resolved_onchain", "SPLIT", 4200.0, 1800.0, "0xverdict")
     assert d["verdict"] | {"resolved_at": None} == {
         "action": "SPLIT", "freelancer_share_percentage": 70, "client_refund_percentage": 30,
         "reasoning": "Dokumentasi kurang", "freelancer_payout": 4200.0, "client_refund": 1800.0,

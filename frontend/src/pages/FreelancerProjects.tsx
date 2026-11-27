@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Activity,
+  AlertTriangle,
   CheckCircle2,
   Circle,
   CodeXml,
@@ -33,9 +34,11 @@ import {
   type DeliveryDraft,
 } from '../services/delivery'
 import {
+  acceptContractApi,
   amount,
   defaultMilestone,
   downloadApiFile,
+  raiseDisputeApi,
   settled,
   statusLabel,
   submitApi,
@@ -325,6 +328,72 @@ function DeliveryForm({
   )
 }
 
+/** Sengketa atas permintaan perbaikan yang tidak disetujui freelancer (dana milestone dibekukan). */
+function DisputeDialog({ m, token, close, reload }: { m: WorkMilestone; token: string; close: () => void; reload: () => void }) {
+  const [reason, setReason] = useState('')
+  const [files, setFiles] = useState<File[]>([])
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  async function send() {
+    setBusy(true)
+    setMessage('')
+    try {
+      await raiseDisputeApi(token, m.id, reason.trim(), files)
+      close()
+      reload()
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Dispute could not be raised. Please retry.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Dialog
+      open
+      onClose={close}
+      title={'Dispute revision request for Milestone ' + m.seq + '?'}
+      footer={
+        <>
+          <button type="button" className="outline-action" onClick={close}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="primary-action"
+            disabled={busy || reason.trim().length < 10}
+            onClick={() => void send()}
+          >
+            Raise dispute
+          </button>
+        </>
+      }
+    >
+      <div className="delivery-form-grid">
+        <fieldset disabled={busy}>
+          <p>
+            The milestone funds stay frozen in escrow until an arbiter rules. Explain why the delivered work already meets
+            the agreed criteria.
+          </p>
+          <label>
+            Reason
+            <textarea rows={4} maxLength={4000} value={reason} onChange={(e) => setReason(e.target.value)} />
+          </label>
+          <label>
+            Evidence (optional)
+            <input
+              type="file"
+              multiple
+              accept={acceptedFiles}
+              onChange={(e) => setFiles(Array.from(e.target.files || []).slice(0, 5))}
+            />
+          </label>
+          {message && <p role="alert">{message}</p>}
+        </fieldset>
+      </div>
+    </Dialog>
+  )
+}
+
 export default function FreelancerProjects({
   data,
   id,
@@ -343,6 +412,8 @@ export default function FreelancerProjects({
   const navigate = useNavigate()
   const location = useLocation()
   const [dialog, setDialog] = useState('')
+  const [accepting, setAccepting] = useState(false)
+  const [acceptError, setAcceptError] = useState('')
   const selected = mid
     ? data.work?.milestones.find((x) => x.id === mid)
     : data.work && defaultMilestone(data.work.milestones)
@@ -456,6 +527,42 @@ export default function FreelancerProjects({
               </button>
             ))}
         </nav>
+        {w.canAccept && (
+          <section className="delivery-panel delivery-accept" aria-label="Contract approval">
+            <h2>Review and accept the contract</h2>
+            <p>
+              The client has drafted the contract. Check the scope, milestones and acceptance criteria. The client can
+              lock escrow funds only after you accept.
+            </p>
+            <div className="delivery-actions">
+              <button type="button" className="outline-action" onClick={() => setDialog('contract')}>
+                <FileText />
+                View contract
+              </button>
+              <button
+                type="button"
+                className="primary-action"
+                disabled={accepting}
+                onClick={async () => {
+                  setAccepting(true)
+                  setAcceptError('')
+                  try {
+                    await acceptContractApi(token, w.contractId)
+                    data.reload()
+                  } catch (e) {
+                    setAcceptError(e instanceof Error ? e.message : 'Could not accept the contract.')
+                  } finally {
+                    setAccepting(false)
+                  }
+                }}
+              >
+                <CheckCircle2 />
+                Accept contract
+              </button>
+            </div>
+            {acceptError && <p role="alert">{acceptError}</p>}
+          </section>
+        )}
         <section className="delivery-panel">
           {tab === 'Files' ? (
             <>
@@ -476,7 +583,11 @@ export default function FreelancerProjects({
             </>
           ) : m ? (
             <>
-              <h2>{m.eligible ? 'Submit Milestone ' + m.seq + ' Deliverable' : statusLabel(m.status)}</h2>
+              <h2>
+                {m.eligible
+                  ? (m.status === 'revision_required' ? 'Resubmit' : 'Submit') + ' Milestone ' + m.seq + ' Deliverable'
+                  : statusLabel(m.status)}
+              </h2>
               <p>
                 {m.eligible
                   ? 'Upload your deliverable for milestone completion.'
@@ -494,9 +605,24 @@ export default function FreelancerProjects({
                 </div>
                 <Coins />
                 <div>
-                  Amount<b>{amount(m.amount)}</b><small>{settled(m.status) ? statusLabel(m.status) : 'In escrow'}</small>
+                  Amount<b>{amount(m.amount)}</b><small>{settled(m.status) ? statusLabel(m.status) : w.fundedAt ? 'In escrow' : 'Not funded yet'}</small>
                 </div>
               </div>
+              {m.revisionNote && (
+                <div className="delivery-revision" role="note">
+                  <AlertTriangle />
+                  <div>
+                    <b>Revision requested by the client</b>
+                    <p className="whitespace-pre-wrap">{m.revisionNote}</p>
+                    <small>Resubmit the improved deliverable, or raise a dispute if you disagree with the request.</small>
+                  </div>
+                  {m.canDispute && (
+                    <button type="button" className="outline-action" onClick={() => setDialog('dispute')}>
+                      Raise dispute
+                    </button>
+                  )}
+                </div>
+              )}
               {m.eligible ? (
                 <DeliveryForm
                   key={w.contractId + m.id}
@@ -518,6 +644,10 @@ export default function FreelancerProjects({
                 <p>
                   {m.transaction
                     ? 'Submission confirmation is pending.'
+                    : m.status === 'disputed'
+                    ? 'Funds for this milestone are frozen until the arbiter rules on the dispute.'
+                    : !w.fundedAt
+                    ? 'Work starts once you accept the contract and the client funds the escrow.'
                     : 'Submission is unavailable at this milestone’s current status.'}{' '}
                   <button className="link" onClick={data.reload}>
                     Refresh status
@@ -573,7 +703,7 @@ export default function FreelancerProjects({
             </div>
             <div>
               <dt>Escrow (Locked)</dt>
-              <dd>{amount(w.locked)}</dd>
+              <dd>{w.fundedAt ? amount(w.locked) : 'Not funded yet'}</dd>
             </div>
           </dl>
           <button className="link" onClick={() => setDialog('contract')}>
@@ -592,6 +722,9 @@ export default function FreelancerProjects({
         <p className="my-3">{w.scope}</p>
         <b>{amount(w.total)}</b>
       </Dialog>
+      {dialog === 'dispute' && m && (
+        <DisputeDialog m={m} token={token} close={() => setDialog('')} reload={data.reload} />
+      )}
       {dialog === 'messages' && w.invitationId && (
         <InvitationMessages id={w.invitationId} sender="freelancer" close={() => setDialog('')} />
       )}

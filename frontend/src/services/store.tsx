@@ -1,6 +1,6 @@
 import { mockProfileEnabled, profileSignature, readDemoProfile } from './freelancerProfile'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import type { ActivityItem, Candidate, Contract, Milestone, Project, Transaction } from '../types/domain'
+import type { ActivityItem, Candidate, Contract, ContractStatus, Milestone, Project, ProjectStatus, Transaction } from '../types/domain'
 import { fakeHash, formatSim, uid } from '../lib/format'
 import {
   cancelInvitationApi,
@@ -26,6 +26,7 @@ import {
   fetchWalletApi,
   lockEscrowApi,
   raiseDisputeApi,
+  requestRevisionApi,
   walletFrom,
 } from './clientContracts'
 
@@ -52,6 +53,8 @@ interface Actions {
   fundContract: (contractId: string) => Promise<Transaction>
   addDemoTokens: () => Promise<void>
   approveMilestone: (contractId: string, milestoneId: string) => Promise<Transaction>
+  /** Client menolak hasil dan meminta perbaikan; dana tetap terkunci dan timer review berhenti. */
+  requestRevision: (contractId: string, milestoneId: string, note: string) => Promise<void>
   raiseDispute: (contractId: string, milestoneId: string, reason: string) => Promise<void>
   markAllRead: () => void
   resetDemo: () => void
@@ -67,6 +70,9 @@ interface Store extends ClientState, Actions {
 }
 
 const StoreContext = createContext<Store | null>(null)
+
+/** Status proyek client yang mengikuti status kontrak di backend. */
+const PROJECT_STATUS: Partial<Record<ContractStatus, ProjectStatus>> = { awaiting_funding: 'funding', active: 'active', closed: 'completed' }
 
 export function ClientStoreProvider({ children }: { children: ReactNode }) {
   const state = useDemoWorkspace()!
@@ -177,17 +183,28 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         contracts: s.contracts.map((c) => (c.id === contractId ? next : c)),
         transactions: [...verdictTxs, ...s.transactions],
         projects: s.projects.map((p) =>
-          p.id !== next.projectId ? p : { ...p, status: next.status === 'closed' ? 'completed' : next.status === 'active' ? 'active' : p.status }),
+          p.id !== next.projectId
+            ? p
+            : { ...p, status: PROJECT_STATUS[next.status] ?? p.status }),
       }))
       const title = demoWorkspace().projects.find((p) => p.id === next.projectId)?.title
       const who = demoWorkspace().candidates[next.projectId]?.find((c) => c.id === next.candidateId)?.identity.name ?? next.candidateId
+      if (latest.status === 'pending_approval' && next.status === 'awaiting_funding')
+        log(`${who} approved contract v${next.version}`, 'success', next.projectId, {
+          title: 'Contract approved - fund escrow to start', body: title, href: `/client/projects/${next.projectId}/fund`,
+        })
       if (latest.status !== 'closed' && next.status === 'closed') log('All milestones settled. Contract closed on-chain.', 'success', next.projectId)
       for (const m of next.milestones) {
         const before = latest.milestones.find((x) => x.seq === m.seq)?.status
         if (before === m.status) continue
         if (m.status === 'under_review') {
-          log(`${who} submitted Milestone ${m.seq}`, 'warning', next.projectId, {
-            title: `Milestone ${m.seq} is ready for review`, body: title, href: `/client/projects/${next.projectId}/milestones/${m.id}/review`,
+          const again = before === 'revision_required'
+          log(`${who} ${again ? 'resubmitted' : 'submitted'} Milestone ${m.seq}`, 'warning', next.projectId, {
+            title: again ? `Revised Milestone ${m.seq} is ready for review` : `Milestone ${m.seq} is ready for review`, body: title, href: `/client/projects/${next.projectId}/milestones/${m.id}/review`,
+          })
+        } else if (before === 'revision_required' && m.status === 'disputed') {
+          log(`${who} disputed your revision request on Milestone ${m.seq}; funds frozen`, 'danger', next.projectId, {
+            title: `Milestone ${m.seq} is in dispute`, body: title, href: '/client/disputes',
           })
         } else if (before === 'disputed') {
           log(`Arbiter resolved the dispute on Milestone ${m.seq} (${m.status})`, 'brand', next.projectId, {
@@ -226,7 +243,8 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
       setTimeout(() => {
         const c = stateRef.current.contracts.find((x) => x.id === contractId)
         const m = c?.milestones.find((x) => x.id === milestoneId)
-        if (!c || c.candidateId === demoRecipient || !m || m.status !== 'in_progress' || m.submissions.length) return
+        const due = m && ((m.status === 'in_progress' && !m.submissions.length) || m.status === 'revision_required')
+        if (!c || c.candidateId === demoRecipient || !m || !due) return
         const version = `v${m.submissions.length + 1}.0`
         patchMilestone(contractId, milestoneId, {
           status: 'under_review',
@@ -366,11 +384,9 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
           if (!inv?.backendId) throw new Error('This freelancer accepted a demo invitation. Invite them again so the contract can be recorded.')
           const next = applyRemote(c, await createContractApi(inv.backendId, p, c))
           update((s) => ({ ...s, contracts: s.contracts.map((x) => (x.id === contractId ? next : x)) }))
-          patchProject(c.projectId, { status: 'funding' })
-          log(`Contract v${c.version} recorded · SHA-256 ${next.documentHash?.slice(0, 12)}…`, 'success', c.projectId, {
-            title: 'Contract recorded — fund escrow to start',
-            href: `/client/projects/${c.projectId}/fund`,
-          })
+          // Dana baru bisa dikunci setelah freelancer menyetujui; syncContract memberi tahu saat itu terjadi.
+          const name = state.candidates[c.projectId]?.find((x) => x.id === c.candidateId)?.identity.name ?? c.candidateId
+          log(`Contract v${c.version} sent to ${name} for approval · SHA-256 ${next.documentHash?.slice(0, 12)}…`, 'brand', c.projectId)
           return
         }
         patchContract(contractId, (c) => ({ ...c, status: 'pending_approval' }))
@@ -462,6 +478,22 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
         })
       },
 
+      async requestRevision(contractId, milestoneId, note) {
+        const c = demoWorkspace().contracts.find((x) => x.id === contractId)
+        const m = c?.milestones.find((x) => x.id === milestoneId)
+        if (!c || !m || m.status !== 'under_review') throw new Error('This milestone is no longer awaiting review.')
+        if (contractsApiEnabled) {
+          if (!m.backendId) throw new Error('This milestone is not recorded yet.')
+          await requestRevisionApi(m.backendId, note)
+          await syncContract(contractId)
+        } else {
+          await wait(1200)
+          patchMilestone(contractId, milestoneId, { status: 'revision_required', revisionNote: note, revisionCount: (m.revisionCount ?? 0) + 1, reviewDeadline: undefined })
+          simulateSubmission(contractId, milestoneId)
+        }
+        log(`Revision requested on Milestone ${m.seq}; funds stay in escrow`, 'brand', c.projectId)
+      },
+
       async raiseDispute(contractId, milestoneId, reason) {
         if (contractsApiEnabled) {
           const m = demoWorkspace().contracts.find((c) => c.id === contractId)?.milestones.find((x) => x.id === milestoneId)
@@ -473,7 +505,9 @@ export function ClientStoreProvider({ children }: { children: ReactNode }) {
           log(`Dispute raised on Milestone ${m.seq}; ${formatSim(m.amount)} frozen`, 'danger', c.projectId)
           return
         }
-        if (demoWorkspace().contracts.find(c=>c.id===contractId)?.milestones.find(m=>m.id===milestoneId)?.status !== 'under_review') throw new Error('This milestone is no longer awaiting review.')
+        const current = demoWorkspace().contracts.find(c=>c.id===contractId)?.milestones.find(m=>m.id===milestoneId)
+        if (current?.status !== 'under_review') throw new Error('This milestone is no longer awaiting review.')
+        if (!current.revisionCount) throw new Error('Request a revision first; disputes are for revised work that is still rejected.')
         patchMilestone(contractId, milestoneId, { status: 'disputed', disputeReason: reason })
         const c = stateRef.current.contracts.find((x) => x.id === contractId)!
         const m = c.milestones.find((x) => x.id === milestoneId)!

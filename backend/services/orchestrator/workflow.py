@@ -12,7 +12,7 @@ from models import Contract, Milestone
 from services.orchestrator.db_models import ActivityLog
 
 SETTLED = {"released", "refunded", "split"}
-ACTIVE = {"in_progress", "under_review", "disputed"}  # milestone yang sedang berjalan
+ACTIVE = {"in_progress", "under_review", "revision_required", "disputed"}  # milestone yang sedang berjalan
 REVIEW_TIMEOUT_DAYS = 5
 TOKEN_SYMBOL = "SIM-IDR"
 
@@ -67,6 +67,26 @@ def milestones_of(session: Session, contract_id: int) -> list[Milestone]:
 
 def log_activity(session: Session, contract_id: int, summary: str) -> None:
     session.add(ActivityLog(contract_id=contract_id, summary=summary))
+
+
+def dispute_block_reason(milestone: Milestone, contract: Contract, user_id: int) -> Optional[str]:
+    """Kenapa user ini belum boleh mengajukan sengketa (None = boleh).
+
+    Terms DisputeResolutionContract: sengketa diajukan bila hasil ditolak client dan tidak disepakati melalui
+    perbaikan. Jadi client baru boleh setelah meminta perbaikan minimal sekali dan hasil revisinya masih
+    ditolak; freelancer boleh bila tidak setuju dengan permintaan perbaikan client.
+    """
+    if user_id == contract.client_id:
+        if milestone.status != "under_review":
+            return "Sengketa hanya untuk hasil yang sedang direview."
+        if milestone.revision_count < 1:
+            return "Minta perbaikan dulu; sengketa diajukan bila hasil perbaikan tetap tidak disepakati."
+        return None
+    if user_id == contract.freelancer_id:
+        if milestone.status != "revision_required":
+            return "Freelancer hanya dapat mengajukan sengketa atas permintaan perbaikan dari client."
+        return None
+    return "Hanya client atau freelancer kontrak ini yang boleh mengajukan sengketa."
 
 
 def start_next_milestone(session: Session, contract: Contract) -> Optional[Milestone]:

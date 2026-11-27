@@ -211,6 +211,13 @@ def release_milestone_onchain(contract_id: int, milestone_index: int, client_use
     return _receipt(*_send_as_user(w3, client_user_id, fn))
 
 
+def request_revision_onchain(client_user_id: int, contract_id: int, milestone_index: int) -> Dict[str, Any]:
+    """Client menolak hasil dan minta perbaikan: milestone kembali LOCKED, timer review 5 hari berhenti."""
+    w3 = get_web3()
+    fn = get_escrow_contract(w3).functions.requestRevision(int(contract_id), int(milestone_index))
+    return _receipt(*_send_as_user(w3, client_user_id, fn))
+
+
 def reassign_remaining_onchain(client_user_id: int, contract_id: int, new_freelancer_address: str) -> Dict[str, Any]:
     w3 = get_web3()
     fn = get_escrow_contract(w3).functions.reassignRemainingMilestones(
