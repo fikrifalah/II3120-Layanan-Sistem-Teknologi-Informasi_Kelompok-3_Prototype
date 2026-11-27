@@ -6,7 +6,7 @@ import time
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel
+from sqlmodel import Session, SQLModel, select
 
 import models  # noqa: F401
 from database import get_db
@@ -52,6 +52,10 @@ class FakeChain:
         self.calls.append(("release", cid, index, client_user_id))
         return {"tx_hash": "0xrelease", "status": 1}
 
+    def request_revision_onchain(self, client_uid, cid, index):
+        self.calls.append(("revision", client_uid, cid, index))
+        return {"tx_hash": "0xrevision", "status": 1}
+
     def reassign_remaining_onchain(self, client_uid, cid, address):
         self.calls.append(("reassign", client_uid, cid, address))
         return {"tx_hash": "0xreassign", "status": 1}
@@ -74,7 +78,7 @@ def env(tmp_path, monkeypatch, postgres_engine):
     fake = FakeChain()
     monkeypatch.setattr(orchestrator, "UPLOADS_DIR", tmp_path)
     for name in ("user_address", "token_balance", "faucet", "create_and_lock_escrow", "submit_milestone_onchain",
-                 "release_milestone_onchain", "reassign_remaining_onchain", "close_contract_onchain",
+                 "release_milestone_onchain", "request_revision_onchain", "reassign_remaining_onchain", "close_contract_onchain",
                  "get_contract", "review_timeout_reached"):
         monkeypatch.setattr(chain, name, getattr(fake, name))
 
@@ -127,8 +131,13 @@ def _create(env, **override):
                                                               **CONTRACT, **override})
 
 
+def _accept(env, contract_id, who="freelancer"):
+    return env["call"]("POST", f"/contracts/{contract_id}/accept", who)
+
+
 def _funded(env):
     contract_id = _create(env).json()["data"]["contract_id"]
+    assert _accept(env, contract_id).status_code == 200
     env["call"]("POST", "/wallet/faucet", "client", json={"amount": 20000})
     assert env["call"]("POST", "/escrow/lock", "client", json={"contract_id": contract_id}).status_code == 201
     return contract_id
@@ -179,8 +188,28 @@ def test_contract_draft_rejections(env):
     assert _create(env).status_code == 409
 
 
+def test_freelancer_accepts_contract_before_funding(env):
+    contract_id = _create(env).json()["data"]["contract_id"]
+    work = env["call"]("GET", f"/projects/{env['ids']['job']}/workspace", "freelancer").json()["data"]
+    assert (work["project"]["status"], work["contract"]["allowed_actions"]) == ("awaiting_acceptance", ["accept"])
+    env["call"]("POST", "/wallet/faucet", "client", json={"amount": 20000})
+    r = env["call"]("POST", "/escrow/lock", "client", json={"contract_id": contract_id})
+    assert r.status_code == 409 and "belum disetujui" in r.json()["detail"]
+    assert _accept(env, contract_id, "client").status_code == 403
+    assert _accept(env, contract_id, "pengganti").status_code == 404
+    r = _accept(env, contract_id)
+    assert r.status_code == 200, r.text
+    d = r.json()["data"]
+    assert d["status"] == "agreed" and d["accepted_at"] and d["contract"]["allowed_actions"] == []
+    assert _accept(env, contract_id).status_code == 409
+    work = env["call"]("GET", f"/projects/{env['ids']['job']}/workspace", "client").json()["data"]
+    assert (work["project"]["status"], work["contract"]["allowed_actions"]) == ("awaiting_funding", ["fund"])
+    assert env["call"]("POST", "/escrow/lock", "client", json={"contract_id": contract_id}).status_code == 201
+
+
 def test_lock_requires_balance_then_locks_and_starts_first_milestone(env):
     contract_id = _create(env).json()["data"]["contract_id"]
+    assert _accept(env, contract_id).status_code == 200
     r = env["call"]("POST", "/escrow/lock", "client", json={"contract_id": contract_id})
     assert r.status_code == 409 and "faucet" in r.json()["detail"]
     assert env["call"]("POST", "/escrow/lock", "freelancer", json={"contract_id": contract_id}).status_code == 403
@@ -211,7 +240,7 @@ def test_full_flow_submit_approve_close(env):
         "expected_end_at": "2027-01-31T00:00:00+00:00"}
 
     m1, m2 = _milestones(env)
-    assert m1["allowed_actions"] == ["submit", "dispute"]
+    assert m1["allowed_actions"] == ["submit"]  # sengketa baru setelah perbaikan tidak disepakati
     file_id = _upload(env).json()["data"]["id"]
     mandatory_only = [{"criterion_id": m1["criteria"][0]["id"], "declared": True}]
     assert _submit(env, m1, declared_criteria=[]).status_code == 422  # kriteria wajib belum dikonfirmasi
@@ -228,7 +257,7 @@ def test_full_flow_submit_approve_close(env):
 
     assert env["call"]("POST", f"/milestones/{m1['id']}/approve", "freelancer").status_code == 403
     client_view = _milestones(env, "client")[0]
-    assert client_view["allowed_actions"] == ["approve", "dispute"]
+    assert client_view["allowed_actions"] == ["approve", "request_revision"]
     r = env["call"]("POST", f"/milestones/{m1['id']}/approve", "client", json={"approval_notes": "sesuai"})
     assert r.status_code == 200, r.text
     d = r.json()["data"]
@@ -242,7 +271,10 @@ def test_full_flow_submit_approve_close(env):
     assert _submit(env, m2, repository_url="https://github.com/x/y").status_code == 200
     assert env["call"]("POST", f"/milestones/{m2['id']}/approve", "client").status_code == 200
     r = env["call"]("POST", f"/escrow/{contract_id}/close", "client")
-    assert r.status_code == 200 and r.json()["data"]["status"] == "closed"
+    assert r.status_code == 200
+    closed = r.json()["data"]
+    assert (closed["status"], closed["final_status"], closed["transaction_hash"]) == ("closed", "completed", "0xclose")
+    assert closed["closed_at"]
     work = env["call"]("GET", f"/projects/{env['ids']['job']}/workspace", "freelancer").json()["data"]
     assert (work["project"]["status"], work["contract"]["status"], work["escrow"]["status"]) == ("completed", "completed", "closed")
     assert work["escrow"]["remaining_locked_amount"] == "0"
@@ -299,3 +331,41 @@ def test_auto_release_after_review_timeout(env):
         assert s.get(Milestone, m1["id"]).status == "released"
     assert env["fake"].calls[-1] == ("release", 7, 0, None)  # ditandatangani platform
     assert [m["status"] for m in _milestones(env)] == ["released", "in_progress"]
+
+
+def test_revision_request_then_resubmission(env):
+    _funded(env)
+    m1 = _milestones(env)[0]
+    assert _submit(env, m1, repository_url="https://github.com/x/y").status_code == 200
+    url = f"/milestones/{m1['id']}/request-revision"
+    assert env["call"]("POST", url, "freelancer", json={"notes": "ERD belum 3NF sama sekali"}).status_code == 403
+    assert env["call"]("POST", url, "client", json={"notes": "kurang"}).status_code == 422
+    r = env["call"]("POST", url, "client", json={"notes": "ERD belum memenuhi 3NF, tabel order duplikat."})
+    assert r.status_code == 200, r.text
+    d = r.json()["data"]
+    assert (d["status"], d["revision_count"]) == ("revision_required", 1)
+    assert env["fake"].calls[-1] == ("revision", env["ids"]["client"], 7, 0)
+    assert env["call"]("POST", url, "client", json={"notes": "ERD belum memenuhi 3NF."}).status_code == 409
+
+    m = _milestones(env)[0]
+    assert m["revision_note"] == "ERD belum memenuhi 3NF, tabel order duplikat."
+    assert (m["review_deadline"], m["allowed_actions"]) == (None, ["submit", "dispute"])  # freelancer boleh menolak
+    assert m["current_submission"] is None  # hasil yang ditolak jadi riwayat; freelancer menyerahkan ulang
+    assert _milestones(env, "client")[0]["allowed_actions"] == []
+    with Session(env["engine"]) as s:  # timer review berhenti: auto-release tidak menyentuh milestone ini
+        env["fake"].timed_out.add((7, 0))
+        assert auto_release.release_overdue(s) == []
+        env["fake"].timed_out.clear()
+
+    body = {"title": "ERD revisi", "repository_url": "https://github.com/x/y", "repository_revision": "v2",
+            "declared_criteria": [{"criterion_id": c["id"], "declared": True} for c in m["criteria"]]}
+    r = env["call"]("POST", f"/milestones/{m1['id']}/submit", "freelancer", json=body, headers={"Idempotency-Key": "k-rev"})
+    assert r.status_code == 200, r.text
+    m = r.json()["data"]
+    assert (m["status"], m["current_submission"]["title"], m["revision_count"]) == ("under_review", "ERD revisi", 1)
+    with Session(env["engine"]) as s:
+        assert [x.status for x in s.exec(select(Submission).order_by(Submission.id))] == ["superseded", "submitted"]
+    # Hasil perbaikan tetap ditolak: client sekarang boleh membawa ke sengketa.
+    assert _milestones(env, "client")[0]["allowed_actions"] == ["approve", "request_revision", "dispute"]
+    work = env["call"]("GET", f"/projects/{env['ids']['job']}/workspace", "client").json()["data"]
+    assert "Milestone 1 resubmitted after revision #1 by freelancer" in [a["summary"] for a in work["recent_activity"]]

@@ -188,6 +188,41 @@ describe("Gigly Smart Contract Escrow Audit & QA Suite (Deliverable 2 II3120)", 
     });
   });
 
+  describe("2b. Revision Request (requestRevision)", function () {
+    it("returns a submitted milestone to LOCKED, stops the review timer and accepts a resubmission", async function () {
+      const fixture = await deployFixture();
+      const { simidr, escrow, client, freelancerA, outsider } = fixture;
+      await createMultiMilestoneContract(fixture);
+
+      await expect(escrow.connect(client).requestRevision(1, 0)).to.be.revertedWith(
+        "Escrow: milestone is not submitted"
+      );
+      await escrow.connect(freelancerA).submitMilestone(1, 0, DELIVERABLE_HASH_1);
+      await expect(escrow.connect(freelancerA).requestRevision(1, 0)).to.be.revertedWith(
+        "Escrow: caller is not the client"
+      );
+
+      await expect(escrow.connect(client).requestRevision(1, 0))
+        .to.emit(escrow, "MilestoneRevisionRequested")
+        .withArgs(1n, 0n, client.address);
+      const m = await escrow.milestones(1, 0);
+      expect(m.status).to.equal(MilestoneStatus.LOCKED);
+      expect(m.submittedAt).to.equal(0n);
+
+      // The old submission no longer counts toward the 5-day auto-release.
+      await network.provider.send("evm_increaseTime", [FIVE_DAYS + 60]);
+      await network.provider.send("evm_mine");
+      await expect(escrow.connect(outsider).releaseMilestonePayment(1, 0)).to.be.revertedWith(
+        "Escrow: only client can release before review timeout"
+      );
+
+      await escrow.connect(freelancerA).submitMilestone(1, 0, DELIVERABLE_HASH_2);
+      expect((await escrow.milestones(1, 0)).deliverableHash).to.equal(DELIVERABLE_HASH_2);
+      await escrow.connect(client).releaseMilestonePayment(1, 0);
+      expect(await simidr.balanceOf(freelancerA.address)).to.equal(M1);
+    });
+  });
+
   describe("3. Freelancer Handover (reassignRemainingMilestones)", function () {
     it("keeps paid milestones intact and redirects remaining milestones to replacement freelancer without unlocking escrow", async function () {
       const fixture = await deployFixture();

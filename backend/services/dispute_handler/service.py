@@ -2,6 +2,8 @@
 
 Alur:
 1. Client/freelancer mengajukan sengketa atas satu milestone (`POST /disputes`) beserta bukti.
+   Sengketa baru boleh setelah perbaikan tidak disepakati: client atas hasil revisi yang tetap ditolak,
+   freelancer atas permintaan perbaikan yang tidak ia setujui (workflow.dispute_block_reason).
    Bukti disimpan off-chain di `uploads/disputes/` dan di-hash SHA-256; milestone dibekukan
    on-chain lewat `Escrow.raiseDispute` sehingga dana tidak bisa dicairkan (termasuk auto-release).
 2. Kedua pihak boleh menambah bukti selama sengketa masih terbuka (`POST /disputes/{id}/evidence`).
@@ -171,6 +173,9 @@ async def raise_dispute(
         raise HTTPException(status_code=409, detail="Milestone ini sudah selesai dibayar atau dikembalikan.")
     if session.exec(select(Dispute).where(Dispute.milestone_id == milestone.id, Dispute.status == "open")).first():
         raise HTTPException(status_code=409, detail="Milestone ini sudah dalam sengketa.")
+    blocked = wf.dispute_block_reason(milestone, contract, user.id)
+    if blocked:
+        raise HTTPException(status_code=409, detail=blocked)
     files = await _read_evidence(evidence)
 
     index = wf.onchain_index(milestone)
@@ -287,4 +292,8 @@ def execute_verdict(
                         f"Arbiter verdict on Milestone {milestone.sequence}: {req.verdict_action} "
                         f"({share}% to freelancer)")
     session.commit()
-    return {"data": _view(session, dispute, milestone, contract)}
+    # Ringkasan putusan di level atas mengikuti contoh respons dokumen (Bab 3.2 no. 4).
+    return {"data": {**_view(session, dispute, milestone, contract), "onchain_status": "resolved_onchain",
+                     "dispute_id": dispute.id, "verdict_action": dispute.verdict,
+                     "freelancer_payout": dispute.freelancer_payout, "client_refund": dispute.client_refund,
+                     "transaction_hash": dispute.verdict_tx_hash, "resolved_at": wf.iso(dispute.resolved_at)}}

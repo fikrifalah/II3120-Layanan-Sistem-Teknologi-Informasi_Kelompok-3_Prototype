@@ -45,10 +45,12 @@ interface ApiMilestone {
   settled_at: string | null
   current_submission: ApiSubmission | null
   dispute_id: number | null
+  revision_count: number
+  revision_note: string | null
 }
 export interface ApiContract {
   id: number
-  status: 'draft' | 'active' | 'completed'
+  status: 'draft' | 'agreed' | 'active' | 'completed'
   contract_hash: string
   escrow: { smart_contract_address: string | null; transaction_hash: string | null; funded_at: string | null } | null
   milestones: ApiMilestone[]
@@ -66,18 +68,24 @@ function settlement(status: string, m: Milestone): Milestone['settlement'] {
   return status === 'split' ? m.settlement : undefined // diisi dari putusan dispute
 }
 
-const CONTRACT_STATUS: Record<ApiContract['status'], ContractStatus> = { draft: 'awaiting_funding', active: 'active', completed: 'closed' }
+// draft = menunggu persetujuan freelancer; agreed = disetujui, menunggu dana escrow.
+const CONTRACT_STATUS: Record<ApiContract['status'], ContractStatus> = {
+  draft: 'pending_approval',
+  agreed: 'awaiting_funding',
+  active: 'active',
+  completed: 'closed',
+}
 
 const kib = (n: number) => (n >= 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + ' MB' : Math.ceil(n / 1024) + ' KB')
 const fileKind = (f: ApiFile): SubmissionFile['kind'] =>
   f.mime_type === 'application/pdf' ? 'pdf' : f.mime_type.includes('zip') ? 'archive' : 'report'
 
-function submission(s: ApiSubmission): Submission {
+function submission(s: ApiSubmission, version: string): Submission {
   const files: SubmissionFile[] = s.files.map((f) => ({ apiId: f.id, name: f.original_filename, description: f.mime_type, size: kib(f.size_bytes), kind: fileKind(f) }))
   if (s.repository_url) files.push({ kind: 'repo', name: 'Repository', description: s.repository_url, url: s.repository_url })
   if (s.demo_url) files.push({ kind: 'link', name: 'Live demo', description: s.demo_url, url: s.demo_url })
   return {
-    version: 'v1.0',
+    version,
     title: s.title,
     submittedAt: s.submitted_at,
     notes: s.notes,
@@ -100,6 +108,9 @@ export function applyRemote(local: Contract, remote: ApiContract): Contract {
     milestones: local.milestones.map((m): Milestone => {
       const r = remote.milestones.find((x) => x.sequence === m.seq)
       if (!r) return m
+      // Backend hanya mengirim hasil terkini; hasil sebelum revisi tetap disimpan lokal sebagai riwayat.
+      const current = r.current_submission && submission(r.current_submission, `v${r.revision_count + 1}.0`)
+      const history = r.revision_count ? m.submissions.filter((s) => s.version !== current?.version) : []
       return {
         ...m,
         backendId: r.id,
@@ -107,7 +118,9 @@ export function applyRemote(local: Contract, remote: ApiContract): Contract {
         reviewDeadline: r.review_deadline ?? undefined,
         releasedAt: r.settled_at ?? undefined,
         settlement: settlement(r.status, m),
-        submissions: r.current_submission ? [submission(r.current_submission)] : [],
+        revisionCount: r.revision_count,
+        revisionNote: r.revision_note ?? undefined,
+        submissions: current ? [...history, current] : history,
       }
     }),
   }
@@ -140,6 +153,9 @@ export const lockEscrowApi = async (contractId: number) =>
 
 export const approveMilestoneApi = async (milestoneId: number) =>
   (await request<{ data: { transaction_hash: string } }>('POST', `/milestones/${milestoneId}/approve`, {})).data
+
+export const requestRevisionApi = async (milestoneId: number, notes: string) =>
+  (await request<{ data: { transaction_hash: string } }>('POST', `/milestones/${milestoneId}/request-revision`, { notes })).data
 
 export const closeContractApi = async (contractId: number) =>
   (await request<{ data: { transaction_hash: string } }>('POST', `/escrow/${contractId}/close`, {})).data

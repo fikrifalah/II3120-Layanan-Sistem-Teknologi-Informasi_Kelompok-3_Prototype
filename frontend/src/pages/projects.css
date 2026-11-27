@@ -219,3 +219,38 @@
     max-width: none;
   }
 }
+.delivery-accept {
+  border-color: var(--violet);
+  background: var(--soft);
+}
+.delivery-accept .delivery-actions {
+  border-top: 0;
+  padding-top: 4px;
+}
+.delivery-revision {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid #f0c36d;
+  background: #fff8e8;
+  border-radius: 10px;
+  padding: 12px;
+  margin: 12px 0;
+}
+.delivery-revision > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: #a05a00;
+}
+.delivery-revision > div {
+  flex: 1;
+  min-width: 0;
+}
+.delivery-revision p {
+  margin: 4px 0;
+}
+.delivery-revision button {
+  flex: none;
+}

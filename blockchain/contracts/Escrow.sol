@@ -79,6 +79,11 @@ contract Escrow is ReentrancyGuard {
         bytes32 deliverableHash,
         uint256 submittedAt
     );
+    event MilestoneRevisionRequested(
+        uint256 indexed contractId,
+        uint256 indexed milestoneIndex,
+        address indexed client
+    );
     event MilestoneReleased(
         uint256 indexed contractId,
         uint256 indexed milestoneIndex,
@@ -226,6 +231,29 @@ contract Escrow is ReentrancyGuard {
         m.deliverableHash = _deliverableHash;
 
         emit MilestoneSubmitted(_contractId, _milestoneIndex, msg.sender, _deliverableHash, block.timestamp);
+    }
+
+    /**
+     * @notice Client rejects a submitted deliverable and asks for a revision. The milestone returns to LOCKED
+     *         (funds stay in escrow) and the 5-day review timer stops until the freelancer submits again.
+     */
+    function requestRevision(
+        uint256 _contractId,
+        uint256 _milestoneIndex
+    )
+        external
+        contractExists(_contractId)
+        contractActive(_contractId)
+        milestoneExists(_contractId, _milestoneIndex)
+        onlyClient(_contractId)
+    {
+        Milestone storage m = milestones[_contractId][_milestoneIndex];
+        require(m.status == MilestoneStatus.SUBMITTED, "Escrow: milestone is not submitted");
+
+        m.status = MilestoneStatus.LOCKED;
+        m.submittedAt = 0;
+
+        emit MilestoneRevisionRequested(_contractId, _milestoneIndex, msg.sender);
     }
 
     /**
