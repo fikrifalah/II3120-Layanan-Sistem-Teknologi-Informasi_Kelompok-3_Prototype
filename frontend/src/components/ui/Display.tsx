@@ -5,12 +5,12 @@ import { cn } from '../../lib/cn'
 
 /* ---------- Page header & breadcrumb ---------- */
 
-export function Breadcrumb({ items }: { items: Array<{ label: string; to?: string }> }) {
+export function Breadcrumb({ items, home = '/client' }: { items: Array<{ label: string; to?: string }>; home?: string }) {
   return (
     <nav aria-label="Breadcrumb" className="mb-3 hidden md:block">
       <ol className="flex flex-wrap items-center gap-1.5 text-small text-ink-muted">
         <li>
-          <Link to="/client" aria-label="Dashboard" className="inline-flex size-6 items-center justify-center rounded-[6px] hover:bg-brand-soft hover:text-brand">
+          <Link to={home} aria-label="Dashboard" className="inline-flex size-6 items-center justify-center rounded-[6px] hover:bg-brand-soft hover:text-brand">
             <Home className="size-4" aria-hidden />
           </Link>
         </li>

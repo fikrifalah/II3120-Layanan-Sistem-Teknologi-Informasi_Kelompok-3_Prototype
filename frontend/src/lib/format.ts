@@ -28,6 +28,11 @@ export function timeAgo(iso: string): string {
   return d < 7 ? `${Math.floor(d)} d ago` : formatDate(iso)
 }
 
+export function greeting() {
+  const h = new Date().getHours()
+  return h < 11 ? 'Good morning' : h < 15 ? 'Good afternoon' : 'Good evening'
+}
+
 export const daysBetween = (a: string, b: string) =>
   Math.max(1, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000))
 

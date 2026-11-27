@@ -5,18 +5,24 @@ import {
   AlertTriangle,
   CheckCircle2,
   Circle,
-  CodeXml,
   Coins,
   FileText,
   Flag,
   Folder,
+  FolderOpen,
   Layers,
   MessageSquare,
   Save,
   Send,
   Trash2,
 } from 'lucide-react'
-import { Dialog } from '../components/ui/Feedback'
+import { Badge, type Tone } from '../components/ui/Badge'
+import { Button, IconButton } from '../components/ui/Button'
+import { Breadcrumb, CardTitle, EmptyState, KeyValue, PageHeader, Progress, Tabs } from '../components/ui/Display'
+import { Alert, Dialog } from '../components/ui/Feedback'
+import { Checkbox, Field, Input, Textarea } from '../components/ui/Field'
+import { ProjectIcon } from '../components/ProjectRow'
+import { cn } from '../lib/cn'
 import InvitationMessages from '../components/InvitationMessages'
 import { formatDate, formatDateTime } from '../lib/format'
 import { mockProfileEnabled } from '../services/freelancerProfile'
@@ -48,7 +54,6 @@ import {
   type WorkFile,
   type WorkMilestone,
 } from '../services/projectWork'
-import './projects.css'
 
 export const projectPath = (id: string) => '/projects/' + encodeURIComponent(id) + '/workspace'
 export const milestonePath = (id: string, m: string) =>
@@ -56,21 +61,36 @@ export const milestonePath = (id: string, m: string) =>
 const date = (s?: string) => (s ? formatDate(s) : 'To be agreed')
 type Data = ReturnType<typeof useProjectWork>
 
+// Warna status mengikuti badge sisi client.
+const STATUS_TONE: Record<string, Tone> = {
+  active: 'success',
+  in_progress: 'info',
+  under_review: 'warning',
+  pending_confirmation: 'warning',
+  revision_required: 'brand',
+  disputed: 'danger',
+  released: 'success',
+}
+export function WorkStatusBadge({ status }: { status: string }) {
+  return <Badge tone={STATUS_TONE[status] ?? 'neutral'}>{statusLabel(status)}</Badge>
+}
+
 export function FileList({ files, token }: { files: WorkFile[]; token: string }) {
   const [error, setError] = useState('')
   return (
     <>
-      <ul className="delivery-files">
+      <ul className="my-3 space-y-2">
         {files.map((f, i) => (
-          <li key={i}>
-            <FileText />
-            <span>
+          <li key={i} className="flex items-center gap-3 rounded-md border border-line px-3 py-2.5">
+            <FileText className="size-5 shrink-0 text-brand" aria-hidden />
+            <span className="min-w-0 flex-1 break-words text-small font-semibold">
               {f.name}
-              <small>{f.size || f.description}</small>
+              <span className="block text-caption font-normal text-ink-muted">{f.size || f.description}</span>
             </span>
             {f.blobId || f.apiId || (f.url && httpUrl(f.url)) ? (
               <button
-                className="link"
+                type="button"
+                className="link text-small"
                 onClick={async () => {
                   try {
                     setError('')
@@ -84,12 +104,12 @@ export function FileList({ files, token }: { files: WorkFile[]; token: string })
                 {f.url ? 'Open' : 'Download'}
               </button>
             ) : (
-              <small>Demo reference</small>
+              <span className="text-caption text-ink-muted">Demo reference</span>
             )}
           </li>
         ))}
       </ul>
-      {error && <p role="alert">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
     </>
   )
 }
@@ -204,121 +224,115 @@ function DeliveryForm({
   }
   if (pending)
     return (
-      <div role="status">
-        <h3>Awaiting submission confirmation</h3>
+      <Alert tone="warning" title="Awaiting submission confirmation">
         <p>The submitted package is locked while the server confirms its status.</p>
-        <button className="outline-action" disabled={busy} onClick={() => void submit()}>
-          Retry same request
-        </button>{' '}
-        <button className="link" onClick={reload}>
-          Check status
-        </button>
-        {message && <p>{message}</p>}
-      </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button variant="secondary" size="sm" loading={busy} onClick={() => void submit()}>
+            Retry same request
+          </Button>
+          <button type="button" className="link" onClick={reload}>
+            Check status
+          </button>
+        </div>
+        {message && <p className="mt-2">{message}</p>}
+      </Alert>
     )
   return (
-    <form className="delivery-form-grid" onSubmit={review}>
-      <fieldset disabled={busy}>
-        <label>
-          Deliverable title
-          <input required value={d.title} onChange={(e) => patch({ title: e.target.value })} />
-        </label>
-        <div className="delivery-columns">
-          <div>
-            <label>
-              Deliverable Files
-              <input
-                type="file"
-                multiple
-                accept={acceptedFiles}
-                onChange={(e) => {
-                  const files = [...d.files, ...Array.from(e.target.files || [])]
-                  e.target.value = ''
-                  const error = fileError(files)
-                  if (error) setMessage(error)
-                  else patch({ files })
-                }}
-              />
-            </label>
-            <small>ZIP, PDF, PNG, JPEG or TXT · Up to 5 files, 20 MiB each</small>
-            <ul className="delivery-files">
+    <form onSubmit={review}>
+      <fieldset disabled={busy} className="grid min-w-0 gap-4">
+        <Field label="Deliverable title">
+          {({ id }) => <Input id={id} required value={d.title} onChange={(e) => patch({ title: e.target.value })} />}
+        </Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="min-w-0">
+            <Field label="Deliverable Files" hint="ZIP, PDF, PNG, JPEG or TXT · Up to 5 files, 20 MiB each">
+              {({ id, describedBy }) => (
+                <input
+                  id={id}
+                  aria-describedby={describedBy}
+                  type="file"
+                  multiple
+                  accept={acceptedFiles}
+                  className="w-full text-small text-ink-muted file:mr-3 file:h-11 file:cursor-pointer file:rounded-sm file:border-0 file:bg-brand-soft file:px-4 file:text-small file:font-semibold file:text-brand"
+                  onChange={(e) => {
+                    const files = [...d.files, ...Array.from(e.target.files || [])]
+                    e.target.value = ''
+                    const error = fileError(files)
+                    if (error) setMessage(error)
+                    else patch({ files })
+                  }}
+                />
+              )}
+            </Field>
+            <ul className="mt-2 space-y-2">
               {d.files.map((f, i) => (
-                <li key={i}>
-                  <FileText />
-                  <span>
+                <li key={i} className="flex items-center gap-3 rounded-md border border-line py-1 pl-3 pr-1">
+                  <FileText className="size-5 shrink-0 text-brand" aria-hidden />
+                  <span className="min-w-0 flex-1 break-words text-small font-semibold">
                     {f.name}
-                    <small>{Math.ceil(f.size / 1024)} KB</small>
+                    <span className="block text-caption font-normal text-ink-muted">{Math.ceil(f.size / 1024)} KB</span>
                   </span>
-                  <button
-                    type="button"
-                    aria-label={'Remove ' + f.name}
-                    onClick={() => patch({ files: d.files.filter((_, n) => n !== i) })}
-                  >
-                    <Trash2 />
-                  </button>
+                  <IconButton label={'Remove ' + f.name} onClick={() => patch({ files: d.files.filter((_, n) => n !== i) })}>
+                    <Trash2 className="size-4" aria-hidden />
+                  </IconButton>
                 </li>
               ))}
             </ul>
           </div>
-          <label>
-            Submission Notes
-            <textarea rows={4} value={d.notes} maxLength={4000} onChange={(e) => patch({ notes: e.target.value })} />
-          </label>
+          <Field label="Submission Notes">
+            {({ id }) => <Textarea id={id} rows={4} value={d.notes} maxLength={4000} onChange={(e) => patch({ notes: e.target.value })} />}
+          </Field>
         </div>
-        <div className="delivery-columns">
-          <label>
-            Repository URL
-            <input type="url" value={d.repository} onChange={(e) => patch({ repository: e.target.value })} />
-          </label>
-          <label>
-            Demo URL
-            <input type="url" value={d.demo} onChange={(e) => patch({ demo: e.target.value })} />
-          </label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Repository URL">
+            {({ id }) => <Input id={id} type="url" value={d.repository} onChange={(e) => patch({ repository: e.target.value })} />}
+          </Field>
+          <Field label="Demo URL">
+            {({ id }) => <Input id={id} type="url" value={d.demo} onChange={(e) => patch({ demo: e.target.value })} />}
+          </Field>
         </div>
         {d.repository && (
-          <label>
-            Commit or tag (optional)
-            <input value={d.revision} onChange={(e) => patch({ revision: e.target.value })} />
-          </label>
+          <Field label="Commit or tag (optional)">
+            {({ id }) => <Input id={id} value={d.revision} onChange={(e) => patch({ revision: e.target.value })} />}
+          </Field>
         )}
-        <h3>Acceptance criteria</h3>
-        {m.criteria.map((c) => (
-          <label key={c.id} className="delivery-check">
-            <input
-              type="checkbox"
+        <div>
+          <h3 className="mb-1 text-small font-semibold">Acceptance criteria</h3>
+          {m.criteria.map((c) => (
+            <Checkbox
+              key={c.id}
               checked={d.criteria.includes(c.id)}
-              onChange={(e) =>
-                patch({ criteria: e.target.checked ? [...d.criteria, c.id] : d.criteria.filter((id) => id !== c.id) })
+              onChange={(checked) =>
+                patch({ criteria: checked ? [...d.criteria, c.id] : d.criteria.filter((id) => id !== c.id) })
               }
+              label={c.required ? c.text : c.text + ' (optional)'}
             />
-            {c.text}
-            {!c.required && ' (optional)'}
-          </label>
-        ))}
-        <div className="delivery-actions">
-          <button className="primary-action">
-            <Send />
+          ))}
+        </div>
+        <div className="flex flex-col gap-2 border-t border-line pt-4 sm:flex-row">
+          <Button type="submit" icon={<Send className="size-4" aria-hidden />}>
             Submit Deliverable
-          </button>
-          <button type="button" className="outline-action" onClick={saveDraft}>
-            <Save />
+          </Button>
+          <Button variant="quiet" icon={<Save className="size-4" aria-hidden />} onClick={saveDraft}>
             Save as Draft
-          </button>
+          </Button>
         </div>
       </fieldset>
-      {message && <p role="status">{message}</p>}
+      {message && (
+        <p role="status" className="mt-3 text-small text-ink">
+          {message}
+        </p>
+      )}
       <Dialog
         open={confirm}
         onClose={() => setConfirm(false)}
         title="Submit final deliverable?"
         footer={
           <>
-            <button type="button" className="outline-action" onClick={() => setConfirm(false)}>
+            <Button variant="quiet" onClick={() => setConfirm(false)}>
               Keep editing
-            </button>
-            <button type="button" className="primary-action" onClick={() => void submit()}>
-              Confirm final submission
-            </button>
+            </Button>
+            <Button onClick={() => void submit()}>Confirm final submission</Button>
           </>
         }
       >
@@ -355,37 +369,31 @@ function DisputeDialog({ m, token, close, reload }: { m: WorkMilestone; token: s
       title={'Dispute revision request for Milestone ' + m.seq + '?'}
       footer={
         <>
-          <button type="button" className="outline-action" onClick={close}>
+          <Button variant="quiet" onClick={close}>
             Cancel
-          </button>
-          <button
-            type="button"
-            className="primary-action"
-            disabled={busy || reason.trim().length < 10}
-            onClick={() => void send()}
-          >
+          </Button>
+          <Button variant="danger" loading={busy} disabled={reason.trim().length < 10} onClick={() => void send()}>
             Raise dispute
-          </button>
+          </Button>
         </>
       }
     >
-      <div className="delivery-form-grid">
-        <fieldset disabled={busy}>
-          <p>
-            The milestone funds stay frozen in escrow until an arbiter rules. Explain why the delivered work already meets
-            the agreed criteria.
-          </p>
-          <label>
-            Reason
-            <textarea rows={4} maxLength={4000} value={reason} onChange={(e) => setReason(e.target.value)} />
-          </label>
-          <p>
-            Evidence is attached automatically: a case summary with the contract, milestone, revision history, latest
-            submission hash and agreed criteria.
-          </p>
-          {message && <p role="alert">{message}</p>}
-        </fieldset>
-      </div>
+      <fieldset disabled={busy} className="grid min-w-0 gap-4">
+        <p>
+          The milestone funds stay frozen in escrow until an arbiter rules. Explain why the delivered work already meets
+          the agreed criteria.
+        </p>
+        <Field label="Reason" hint="At least 10 characters">
+          {({ id, describedBy }) => (
+            <Textarea id={id} aria-describedby={describedBy} rows={4} maxLength={4000} value={reason} onChange={(e) => setReason(e.target.value)} />
+          )}
+        </Field>
+        {/* Tanpa unggah berkas: backend melampirkan ringkasan kasus standar sebagai bukti. */}
+        <Alert tone="info" title="Evidence is attached automatically">
+          A case summary with the contract, milestone, revision history, latest submission hash and agreed criteria.
+        </Alert>
+        {message && <Alert tone="danger">{message}</Alert>}
+      </fieldset>
     </Dialog>
   )
 }
@@ -437,31 +445,46 @@ export default function FreelancerProjects({
   }, [waiting, data.reload])
   if (data.error)
     return (
-      <p role="alert">
-        {data.error}{' '}
-        <button className="link" onClick={data.reload}>
-          Retry
-        </button>
+      <Alert
+        tone="danger"
+        title={data.error}
+        action={
+          <button type="button" className="link text-small" onClick={data.reload}>
+            Retry
+          </button>
+        }
+      />
+    )
+  if (!data.projects)
+    return (
+      <p role="status" className="card px-5 py-4 text-small text-ink-muted">
+        Loading projects…
       </p>
     )
-  if (!data.projects) return <p role="status">Loading projects…</p>
   if (!id)
     return (
-      <div className="project-delivery">
-        <h1>My Projects</h1>
-        {!data.projects.length && <p>No assigned projects yet.</p>}
-        {data.projects.map((p) => (
-          <Link key={p.id} className="delivery-panel project-heading" to={projectPath(p.id)}>
-            <span className="code-tile">
-              <CodeXml />
-            </span>
-            <div>
-              <h2>{p.title}</h2>
-              <p>{p.category}</p>
-            </div>
-            <b className="green-pill">{statusLabel(p.status)}</b>
-          </Link>
-        ))}
+      <div>
+        <PageHeader title="My Projects" subtitle="Contracts assigned to you and where each one stands." />
+        {!data.projects.length ? (
+          <EmptyState
+            icon={<FolderOpen />}
+            title="No assigned projects yet"
+            body="Projects appear here after a client funds a contract with you."
+          />
+        ) : (
+          <div className="stagger space-y-3">
+            {data.projects.map((p) => (
+              <Link key={p.id} className="card-link flex flex-wrap items-center gap-4 p-4 md:p-5" to={projectPath(p.id)}>
+                <ProjectIcon category={p.category} />
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-body font-semibold">{p.title}</h2>
+                  <p className="text-caption text-ink-muted">{p.category}</p>
+                </div>
+                <WorkStatusBadge status={p.status} />
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     )
   const w = data.work
@@ -479,284 +502,298 @@ export default function FreelancerProjects({
     ? Math.round((w.milestones.filter((x) => settled(x.status)).length * 100) / w.milestones.length)
     : 0
   const timeline = (
-    <ul className="delivery-events">
+    <ol className="space-y-3">
       {w.events.map((e, i) => (
-        <li key={i}>
-          <CheckCircle2 />
+        <li key={i} className="flex gap-3 text-small">
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
           <div>
-            {e.text}
-            <small>{formatDateTime(e.at)}</small>
+            <p>{e.text}</p>
+            <p className="text-caption text-ink-muted">{formatDateTime(e.at)}</p>
           </div>
         </li>
       ))}
-    </ul>
+    </ol>
   )
+  const sections = [
+    { id: 'Deliverables', label: 'Deliverables', icon: <Layers className="size-4" aria-hidden /> },
+    { id: 'Discussion', label: 'Discussion', icon: <MessageSquare className="size-4" aria-hidden /> },
+    { id: 'Files', label: 'Files', icon: <Folder className="size-4" aria-hidden /> },
+    { id: 'Activity', label: 'Activity', icon: <Activity className="size-4" aria-hidden /> },
+  ].filter((t) => t.id !== 'Discussion' || w.invitationId)
   return (
-    <div className="project-delivery delivery-layout">
-      <div>
-        <div className="delivery-panel project-heading">
-          <span className="code-tile">
-            <CodeXml />
-          </span>
-          <div>
-            <h1>{w.project.title}</h1>
-            <p>{w.project.category}</p>
-          </div>
-          <b className="green-pill">{statusLabel(w.project.status)}</b>
-        </div>
-        <nav className="delivery-tabs" aria-label="Project sections">
-          {[
-            { name: 'Deliverables', Icon: Layers },
-            { name: 'Discussion', Icon: MessageSquare },
-            { name: 'Files', Icon: Folder },
-            { name: 'Activity', Icon: Activity },
-          ]
-            .filter((t) => t.name !== 'Discussion' || w.invitationId)
-            .map(({ name, Icon }) => (
-              <button
-                key={name}
-                aria-current={tab === name ? 'page' : undefined}
-                onClick={() => setParams({ tab: name })}
-              >
-                <Icon />
-                {name}
-              </button>
-            ))}
-        </nav>
-        {w.canAccept && (
-          <section className="delivery-panel delivery-accept" aria-label="Contract approval">
-            <h2>Review and accept the contract</h2>
-            <p>
-              The client has drafted the contract. Check the scope, milestones and acceptance criteria. The client can
-              lock escrow funds only after you accept.
-            </p>
-            <div className="delivery-actions">
-              <button type="button" className="outline-action" onClick={() => setDialog('contract')}>
-                <FileText />
-                View contract
-              </button>
-              <button
-                type="button"
-                className="primary-action"
-                disabled={accepting}
-                onClick={async () => {
-                  setAccepting(true)
-                  setAcceptError('')
-                  try {
-                    await acceptContractApi(token, w.contractId)
-                    data.reload()
-                  } catch (e) {
-                    setAcceptError(e instanceof Error ? e.message : 'Could not accept the contract.')
-                  } finally {
-                    setAccepting(false)
-                  }
-                }}
-              >
-                <CheckCircle2 />
-                Accept contract
-              </button>
-            </div>
-            {acceptError && <p role="alert">{acceptError}</p>}
-          </section>
-        )}
-        {w.withdrawn ? (
-          <section className="delivery-panel" aria-label="Withdrawn">
-            <h2>You withdrew from this project</h2>
-            <p>
-              The client will reassign the remaining milestones to another freelancer. Funds you already received stay
-              yours.
-            </p>
-          </section>
-        ) : (
-          w.canWithdraw && (
-            <section className="delivery-panel" aria-label="Withdraw">
-              <h2>Can&apos;t continue?</h2>
-              <p>Withdraw to let the client reassign the remaining milestones. You cannot undo this.</p>
-              <div className="delivery-actions">
-                <button
-                  type="button"
-                  className="outline-action"
-                  disabled={accepting}
+    <div>
+      <Breadcrumb home="/freelancer/dashboard" items={[{ label: 'My Projects', to: '/freelancer/projects' }, { label: w.project.title }]} />
+      <PageHeader
+        title={w.project.title}
+        subtitle={w.project.category}
+        back={<ProjectIcon category={w.project.category} />}
+        actions={<WorkStatusBadge status={w.project.status} />}
+      />
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
+          <Tabs label="Project sections" tabs={sections} value={tab} onChange={(name) => setParams({ tab: name })} />
+          {w.canAccept && (
+            <section className="card mt-4 border-brand bg-brand-soft p-5 md:p-6" aria-label="Contract approval">
+              <h2 className="text-h3">Review and accept the contract</h2>
+              <p className="mt-1 text-small text-ink-muted">
+                The client has drafted the contract. Check the scope, milestones and acceptance criteria. The client can
+                lock escrow funds only after you accept.
+              </p>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <Button variant="secondary" icon={<FileText className="size-4" aria-hidden />} onClick={() => setDialog('contract')}>
+                  View contract
+                </Button>
+                <Button
+                  icon={<CheckCircle2 className="size-4" aria-hidden />}
+                  loading={accepting}
                   onClick={async () => {
-                    if (!window.confirm('Withdraw from this project? You will not be able to continue the remaining milestones.'))
-                      return
                     setAccepting(true)
                     setAcceptError('')
                     try {
-                      await withdrawContractApi(token, w.contractId)
+                      await acceptContractApi(token, w.contractId)
                       data.reload()
                     } catch (e) {
-                      setAcceptError(e instanceof Error ? e.message : 'Could not withdraw.')
+                      setAcceptError(e instanceof Error ? e.message : 'Could not accept the contract.')
                     } finally {
                       setAccepting(false)
                     }
                   }}
                 >
-                  Withdraw from project
-                </button>
+                  Accept contract
+                </Button>
               </div>
-              {acceptError && <p role="alert">{acceptError}</p>}
+              {acceptError && (
+                <Alert tone="danger" className="mt-3">
+                  {acceptError}
+                </Alert>
+              )}
             </section>
-          )
-        )}
-        <section className="delivery-panel">
-          {tab === 'Files' ? (
-            <>
-              <h2>Project files</h2>
-              {w.files.length ? <FileList files={w.files} token={token} /> : <p>No submitted files yet.</p>}
-            </>
-          ) : tab === 'Discussion' && w.invitationId ? (
-            <>
-              <h2>Project discussion</h2>
-              <button className="outline-action" onClick={() => setDialog('messages')}>
-                Open conversation with client
-              </button>
-            </>
-          ) : tab === 'Activity' ? (
-            <>
-              <h2>Project activity</h2>
-              {timeline}
-            </>
-          ) : m ? (
-            <>
-              <h2>
-                {m.eligible
-                  ? (m.status === 'revision_required' ? 'Resubmit' : 'Submit') + ' Milestone ' + m.seq + ' Deliverable'
-                  : statusLabel(m.status)}
-              </h2>
-              <p>
-                {m.eligible
-                  ? 'Upload your deliverable for milestone completion.'
-                  : m.deadline && m.status === 'under_review'
-                  ? 'Review deadline: ' + formatDateTime(m.deadline)
-                  : ''}
-              </p>
-              <div className="delivery-summary">
-                <Flag />
-                <div>
-                  <b>
-                    Milestone {m.seq}: {m.title}
-                  </b>
-                  <small>Due: {date(m.due)}</small>
-                </div>
-                <Coins />
-                <div>
-                  Amount<b>{amount(m.amount)}</b><small>{settled(m.status) ? statusLabel(m.status) : w.fundedAt ? 'In escrow' : 'Not funded yet'}</small>
-                </div>
-              </div>
-              {m.revisionNote && (
-                <div className="delivery-revision" role="note">
-                  <AlertTriangle />
-                  <div>
-                    <b>Revision requested by the client</b>
-                    <p className="whitespace-pre-wrap">{m.revisionNote}</p>
-                    <small>Resubmit the improved deliverable, or raise a dispute if you disagree with the request.</small>
-                  </div>
-                  {m.canDispute && (
-                    <button type="button" className="outline-action" onClick={() => setDialog('dispute')}>
-                      Raise dispute
-                    </button>
-                  )}
-                </div>
-              )}
-              {m.eligible ? (
-                <DeliveryForm
-                  key={w.contractId + m.id}
-                  work={w}
-                  m={m}
-                  token={token}
-                  account={account}
-                  reload={data.reload}
-                />
-              ) : m.submission ? (
-                <>
-                  <h3>{m.submission.title}</h3>
-                  <p className="whitespace-pre-wrap">{m.submission.notes}</p>
-                  {m.submission.at && <small>Submitted {formatDateTime(m.submission.at)}</small>}
-                  <FileList files={m.submission.files} token={token} />
-                  {m.submission.revision && <p>Repository revision: {m.submission.revision}</p>}
-                </>
-              ) : (
-                <p>
-                  {m.transaction
-                    ? 'Submission confirmation is pending.'
-                    : m.status === 'disputed'
-                    ? 'Funds for this milestone are frozen until the arbiter rules on the dispute.'
-                    : !w.fundedAt
-                    ? 'Work starts once you accept the contract and the client funds the escrow.'
-                    : 'Submission is unavailable at this milestone’s current status.'}{' '}
-                  <button className="link" onClick={data.reload}>
-                    Refresh status
-                  </button>
-                </p>
-              )}
-            </>
-          ) : (
-            <p>No milestones yet.</p>
           )}
-        </section>
-      </div>
-      <aside>
-        <section className="delivery-panel">
-          <h2>Project Progress</h2>
-          <div className="delivery-progress">
-            <progress max={100} value={pct} aria-label="Project progress" />
-            <b>{pct}%</b>
-          </div>
-        </section>
-        <section className="delivery-panel">
-          <h2>Milestones ({w.milestones.length})</h2>
-          {w.milestones.map((x) => (
-            <Link
-              key={x.id}
-              className="delivery-step"
-              aria-current={x.id === m?.id ? 'step' : undefined}
-              to={milestonePath(id, x.id)}
-            >
-              {settled(x.status) ? <CheckCircle2 /> : <Circle />}
-              <div>
-                <b>
-                  Milestone {x.seq}: {x.title}
-                </b>
-                <small>{statusLabel(x.status)}</small>
-              </div>
-              <strong>{amount(x.amount)}</strong>
-            </Link>
-          ))}
-        </section>
-        <section className="delivery-panel">
-          <h2>Project Details</h2>
-          <dl>
-            <div>
-              <dt>Timeline</dt>
-              <dd>
+          {w.withdrawn ? (
+            <div className="mt-4">
+              <Alert tone="warning" title="You withdrew from this project">
+                The client will reassign the remaining milestones to another freelancer. Funds you already received stay
+                yours.
+              </Alert>
+            </div>
+          ) : (
+            w.canWithdraw && (
+              <section className="card mt-4 p-5 md:p-6" aria-label="Withdraw">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <h2 className="text-h3">Can&apos;t continue?</h2>
+                    <p className="mt-1 text-small text-ink-muted">
+                      Withdraw to let the client reassign the remaining milestones. You cannot undo this.
+                    </p>
+                  </div>
+                  <Button variant="danger" className="shrink-0" loading={accepting} onClick={() => setDialog('withdraw')}>
+                    Withdraw from project
+                  </Button>
+                </div>
+                {acceptError && (
+                  <Alert tone="danger" className="mt-3">
+                    {acceptError}
+                  </Alert>
+                )}
+              </section>
+            )
+          )}
+          <section className="card mt-4 p-5 md:p-6">
+            {tab === 'Files' ? (
+              <>
+                <CardTitle>Project files</CardTitle>
+                {w.files.length ? <FileList files={w.files} token={token} /> : <p className="text-small text-ink-muted">No submitted files yet.</p>}
+              </>
+            ) : tab === 'Discussion' && w.invitationId ? (
+              <>
+                <CardTitle>Project discussion</CardTitle>
+                <Button variant="secondary" onClick={() => setDialog('messages')}>
+                  Open conversation with client
+                </Button>
+              </>
+            ) : tab === 'Activity' ? (
+              <>
+                <CardTitle>Project activity</CardTitle>
+                {timeline}
+              </>
+            ) : m ? (
+              <>
+                <h2 className="text-h2">
+                  {m.eligible
+                    ? (m.status === 'revision_required' ? 'Resubmit' : 'Submit') + ' Milestone ' + m.seq + ' Deliverable'
+                    : statusLabel(m.status)}
+                </h2>
+                <p className="mt-1 text-small text-ink-muted">
+                  {m.eligible
+                    ? 'Upload your deliverable for milestone completion.'
+                    : m.deadline && m.status === 'under_review'
+                    ? 'Review deadline: ' + formatDateTime(m.deadline)
+                    : ''}
+                </p>
+                <div className="my-4 grid gap-4 rounded-md bg-canvas p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="flex items-start gap-3">
+                    <Flag className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
+                    <p className="min-w-0 text-small">
+                      <span className="block font-semibold">
+                        Milestone {m.seq}: {m.title}
+                      </span>
+                      <span className="text-caption text-ink-muted">Due: {date(m.due)}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Coins className="mt-0.5 size-5 shrink-0 text-accent-strong" aria-hidden />
+                    <p className="text-small">
+                      <span className="tabular block font-semibold">{amount(m.amount)}</span>
+                      <span className="text-caption text-ink-muted">{settled(m.status) ? statusLabel(m.status) : w.fundedAt ? 'In escrow' : 'Not funded yet'}</span>
+                    </p>
+                  </div>
+                </div>
+                {m.revisionNote && (
+                  <div role="note" className="my-3 flex flex-wrap items-start gap-2.5 rounded-md border border-accent/40 bg-accent-soft p-3">
+                    <AlertTriangle className="mt-0.5 size-[18px] shrink-0 text-accent-strong" aria-hidden />
+                    <div className="min-w-0 flex-1 text-small">
+                      <p className="font-semibold">Revision requested by the client</p>
+                      <p className="my-1 whitespace-pre-wrap">{m.revisionNote}</p>
+                      <p className="text-caption text-ink-muted">
+                        Resubmit the improved deliverable, or raise a dispute if you disagree with the request.
+                      </p>
+                    </div>
+                    {m.canDispute && (
+                      <Button variant="danger" size="sm" className="shrink-0" onClick={() => setDialog('dispute')}>
+                        Raise dispute
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {m.eligible ? (
+                  <DeliveryForm
+                    key={w.contractId + m.id}
+                    work={w}
+                    m={m}
+                    token={token}
+                    account={account}
+                    reload={data.reload}
+                  />
+                ) : m.submission ? (
+                  <div className="text-small">
+                    <h3 className="text-h3">{m.submission.title}</h3>
+                    <p className="mt-1 whitespace-pre-wrap leading-6">{m.submission.notes}</p>
+                    {m.submission.at && <p className="mt-2 text-caption text-ink-muted">Submitted {formatDateTime(m.submission.at)}</p>}
+                    <FileList files={m.submission.files} token={token} />
+                    {m.submission.revision && <p>Repository revision: {m.submission.revision}</p>}
+                  </div>
+                ) : (
+                  <p className="text-small text-ink-muted">
+                    {m.transaction
+                      ? 'Submission confirmation is pending.'
+                      : m.status === 'disputed'
+                      ? 'Funds for this milestone are frozen until the arbiter rules on the dispute.'
+                      : !w.fundedAt
+                      ? 'Work starts once you accept the contract and the client funds the escrow.'
+                      : 'Submission is unavailable at this milestone’s current status.'}{' '}
+                    <button type="button" className="link" onClick={data.reload}>
+                      Refresh status
+                    </button>
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-small text-ink-muted">No milestones yet.</p>
+            )}
+          </section>
+        </div>
+        <aside className="min-w-0 space-y-4">
+          <section className="card p-5">
+            <CardTitle action={<span className="tabular text-small font-semibold">{pct}%</span>}>Project progress</CardTitle>
+            <Progress value={pct} label="Project progress" />
+          </section>
+          <section className="card p-5">
+            <CardTitle>Milestones ({w.milestones.length})</CardTitle>
+            <ul className="space-y-2">
+              {w.milestones.map((x) => (
+                <li key={x.id}>
+                  <Link
+                    className={cn(
+                      'flex items-start gap-3 rounded-md border p-3 text-small transition-colors',
+                      x.id === m?.id ? 'border-brand bg-brand-soft/40' : 'border-line hover:border-line-control/50',
+                    )}
+                    aria-current={x.id === m?.id ? 'step' : undefined}
+                    to={milestonePath(id, x.id)}
+                  >
+                    {settled(x.status) ? (
+                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                    ) : (
+                      <Circle className="mt-0.5 size-4 shrink-0 text-ink-muted" aria-hidden />
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold">
+                        Milestone {x.seq}: {x.title}
+                      </span>
+                      <span className="block text-caption text-ink-muted">{statusLabel(x.status)}</span>
+                      <span className="tabular block text-caption font-semibold">{amount(x.amount)}</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="card p-5">
+            <CardTitle>Project details</CardTitle>
+            <dl className="mb-3 divide-y divide-line">
+              <KeyValue label="Timeline">
                 {date(w.start)} – {date(w.end)}
-              </dd>
-            </div>
-            <div>
-              <dt>Total Contract</dt>
-              <dd>{amount(w.total)}</dd>
-            </div>
-            <div>
-              <dt>Escrow (Locked)</dt>
-              <dd>{w.fundedAt ? amount(w.locked) : 'Not funded yet'}</dd>
-            </div>
-          </dl>
-          <button className="link" onClick={() => setDialog('contract')}>
-            View Contract ↗
-          </button>
-        </section>
-        <section className="delivery-panel">
-          <h2>Activity Timeline</h2>
-          {timeline}
-        </section>
-      </aside>
+              </KeyValue>
+              <KeyValue label="Total contract">{amount(w.total)}</KeyValue>
+              <KeyValue label="Escrow (locked)">{w.fundedAt ? amount(w.locked) : 'Not funded yet'}</KeyValue>
+            </dl>
+            <button type="button" className="link text-small" onClick={() => setDialog('contract')}>
+              View contract
+            </button>
+          </section>
+          <section className="card p-5">
+            <CardTitle>Activity timeline</CardTitle>
+            {timeline}
+          </section>
+        </aside>
+      </div>
+      <Dialog
+        open={dialog === 'withdraw'}
+        onClose={() => setDialog('')}
+        title="Withdraw from this project?"
+        footer={
+          <>
+            <Button variant="quiet" onClick={() => setDialog('')}>
+              Keep working
+            </Button>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                setDialog('')
+                setAccepting(true)
+                setAcceptError('')
+                try {
+                  await withdrawContractApi(token, w.contractId)
+                  data.reload()
+                } catch (e) {
+                  setAcceptError(e instanceof Error ? e.message : 'Could not withdraw.')
+                } finally {
+                  setAccepting(false)
+                }
+              }}
+            >
+              Withdraw
+            </Button>
+          </>
+        }
+      >
+        You will not be able to continue the remaining milestones. The client will reassign them to another freelancer.
+      </Dialog>
       <Dialog open={dialog === 'contract'} onClose={() => setDialog('')} title="Contract details">
         <p>
           {w.contractId} · Agreement {w.agreement}
         </p>
         <p className="my-3">{w.scope}</p>
-        <b>{amount(w.total)}</b>
+        <p className="font-semibold text-ink">{amount(w.total)}</p>
       </Dialog>
       {dialog === 'dispute' && m && (
         <DisputeDialog m={m} token={token} close={() => setDialog('')} reload={data.reload} />
