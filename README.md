@@ -2,6 +2,8 @@
 
 Modular 3-folder prototype (`/blockchain`, `/backend`, `/frontend`) for **Gigly**, designed so a 6-person engineering team can develop in parallel without Git merge conflicts.
 
+Screenshots of the key pages: [`docs/README.md`](docs/README.md).
+
 ---
 
 ## Project Structure
